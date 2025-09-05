@@ -40,9 +40,24 @@ service cloud.firestore {
 
     // ---- transactions (owner-scope; require v2) ----
     match /transactions/{id} {
+      function isV2(d) { return d.schemaVersion == 2; }
+      function baseKeysOK(d) {
+        return d.keys().hasOnly(['userId','accountId','postedDate','description','amountCents','currency','notes','category','src','schemaVersion']);
+      }
       allow read: if ownerOnResource();
-      allow create: if ownerOnCreate() && requireV2(request.resource.data);
-      allow update, delete: if ownerOnResource() && unchangedUserId() && requireV2(request.resource.data);
+      allow create: if ownerOnCreate() && isV2(request.resource.data) && baseKeysOK(request.resource.data);
+      allow update: if ownerOnResource()
+        && isV2(request.resource.data)
+        && baseKeysOK(request.resource.data)
+        // immutable core
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.accountId == resource.data.accountId
+        && request.resource.data.postedDate == resource.data.postedDate
+        && request.resource.data.amountCents == resource.data.amountCents
+        && request.resource.data.currency == resource.data.currency
+        && request.resource.data.description == resource.data.description
+        && request.resource.data.src == resource.data.src;
+      allow delete: if ownerOnResource();
     }
 
     // ---- obligations ----
@@ -95,6 +110,7 @@ service cloud.firestore {
              d.inputsHash is string && d.summary is map && d.result is map;
     }
     function validateEstimateUpdate(d) {
+      // allow server timestamps on createdAt; disallow mutating canonical inputs/hash
       return d.schemaVersion == resource.data.schemaVersion &&
              d.inputsHash == resource.data.inputsHash &&
              unchangedUserId();
@@ -105,5 +121,8 @@ service cloud.firestore {
       allow update: if ownerOnResource() && validateEstimateUpdate(request.resource.data);
       allow delete: if ownerOnResource();
     }
+
+    // ---- default deny (no other top-level collections) ----
+    match /{document=**} { allow read, write: if false; }
   }
 }
