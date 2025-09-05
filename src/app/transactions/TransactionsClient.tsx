@@ -11,7 +11,10 @@ const fmtUSD = (cents: number) => (cents/100).toLocaleString(undefined, { style:
 export default function TransactionsClient() {
   const [rows, setRows] = useState<any[]>([])
   const [qtext, setQ] = useState('')
-  const uid = 'demo-uid' // TODO: replace with real auth user
+  const [account, setAccount] = useState('')
+  const [from, setFrom] = useState('') // YYYY-MM-DD
+  const [to, setTo] = useState('')   // YYYY-MM-DD
+  const uid = 'demo-uid' // TODO: real auth
 
   useEffect(() => {
     ;(async () => {
@@ -19,25 +22,51 @@ export default function TransactionsClient() {
         collection(db, 'transactions'),
         where('userId','==', uid),
         orderBy('postedDate','desc'),
-        limit(100)
+        limit(500)
       )
       const snap = await getDocs(qy)
       setRows(snap.docs.map(d => ({ id: d.id, ...d.data() })))
     })()
   }, [])
 
+  const accounts = useMemo(() => {
+    const s = new Set<string>()
+    rows.forEach(r => { if (r.accountId) s.add(String(r.accountId)) })
+    return Array.from(s).sort()
+  }, [rows])
+
   const filtered = useMemo(() => {
     const s = qtext.trim().toLowerCase()
-    if (!s) return rows
-    return rows.filter(r => String(r.description||'').toLowerCase().includes(s))
-  }, [rows, qtext])
+    return rows.filter(r => {
+      if (account && String(r.accountId) !== account) return false
+      if (from && String(r.postedDate) < from) return false
+      if (to && String(r.postedDate) > to) return false
+      if (!s) return true
+      return String(r.description||'').toLowerCase().includes(s)
+    })
+  }, [rows, qtext, account, from, to])
 
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-4">
-      <div className="flex items-center gap-2">
-        <Input placeholder="Search description…" value={qtext} onChange={e=>setQ(e.target.value)} />
-        <div className="text-sm text-muted-foreground">{filtered.length} items</div>
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+        <div className="col-span-2">
+          <Input placeholder="Search description…" value={qtext} onChange={e=>setQ(e.target.value)} />
+        </div>
+        <div>
+          <select className="w-full border rounded h-9 px-2 bg-background" value={account} onChange={e=>setAccount(e.target.value)}>
+            <option value="">All accounts</option>
+            {accounts.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </div>
+        <div className="text-right text-sm text-muted-foreground">{filtered.length} items</div>
+        <div className="sm:col-span-2 flex items-center gap-2">
+          <label className="text-xs text-muted-foreground">From</label>
+          <Input type="date" value={from} onChange={e=>setFrom(e.target.value)} />
+          <label className="text-xs text-muted-foreground">To</label>
+          <Input type="date" value={to} onChange={e=>setTo(e.target.value)} />
+        </div>
       </div>
+
       <div className="space-y-2">
         {filtered.map(tx => (
           <Card key={tx.id} className="p-3 flex items-center justify-between">

@@ -27,7 +27,7 @@ service cloud.firestore {
 
     // ---- shifts ----
     function validateShift(d) {
-      return d.keys().hasOnly(['userId','date','start','end','tags']) &&
+      return d.keys().hasOnly(['userId','date','start','end','tags','schemaVersion']) &&
              isoDate(d.date) && d.start is string && d.end is string &&
              d.tags is list && d.tags.size() <= 5;
     }
@@ -42,7 +42,8 @@ service cloud.firestore {
     match /transactions/{id} {
       function isV2(d) { return d.schemaVersion == 2; }
       function baseKeysOK(d) {
-        return d.keys().hasOnly([
+        return d.keys().hasAll(['userId','accountId','postedDate','description','amountCents','currency','src','schemaVersion'])
+          && d.keys().hasOnly([
           'userId','accountId','postedDate','description','amountCents','currency',
           'notes','category','src','schemaVersion','possibleDuplicateOf'
         ]);
@@ -63,6 +64,7 @@ service cloud.firestore {
         && request.resource.data.possibleDuplicateOf == resource.data.possibleDuplicateOf; // sticky once set
       allow delete: if ownerOnResource();
     }
+
 
     // ---- obligations ----
     function validateObligation(d) {
@@ -93,7 +95,8 @@ service cloud.firestore {
 
     // ---- tax_profiles (v2 shapes: bps for rates; dollars for wage base) ----
     function validateTaxProfile(d) {
-      return d.keys().hasAll(['userId','filingStatus','federal','state','fica']) &&
+      return d.keys().hasAll(['userId','filingStatus','federal','state','fica','schemaVersion']) &&
+             requireV2(d) &&
              d.federal is map && d.state is map && d.fica is map &&
              d.federal.brackets is list && d.state.brackets is list &&
              isNonNegInt(d.fica.ssRateBps) && isNonNegInt(d.fica.medicareRateBps) &&
@@ -108,12 +111,13 @@ service cloud.firestore {
 
     // ---- paycheck_estimates (lock to schemaVersion:2 + immutable fields) ----
     function validateEstimateCreate(d) {
-      return d.schemaVersion == 2 &&
-             d.keys().hasAll(['userId','periodStart','periodEnd','inputsHash','summary','result','schemaVersion']) &&
+      return requireV2(d) &&
+             d.keys().hasAll(['userId','periodStart','periodEnd','inputsHash','summary','result','schemaVersion','createdAt']) &&
              isoDate(d.periodStart) && isoDate(d.periodEnd) &&
              d.inputsHash is string && d.summary is map && d.result is map;
     }
     function validateEstimateUpdate(d) {
+      // allow server timestamps on createdAt; disallow mutating canonical inputs/hash
       return d.schemaVersion == resource.data.schemaVersion &&
              d.inputsHash == resource.data.inputsHash &&
              unchangedUserId();
