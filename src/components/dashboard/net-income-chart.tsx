@@ -1,8 +1,8 @@
 'use client';
 
-import { Bar, BarChart, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, XAxis, YAxis, Tooltip } from 'recharts';
 import { incomeData } from '@/lib/mock-data';
-import { ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
 export default function NetIncomeChart() {
   return (
