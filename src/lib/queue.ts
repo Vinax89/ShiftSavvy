@@ -1,6 +1,6 @@
 'use client'
 import { openDB, IDBPDatabase } from 'idb'
-import { addDoc, collection } from 'firebase/firestore'
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase.client'
 
 type Mutation = {
@@ -37,7 +37,7 @@ export async function flush() {
       if (m.kind === 'add_estimate') {
         // We remove the userId from the doc payload itself as it's already in the path or as a top-level key
         const { userId: _, ...docData } = m.doc;
-        await addDoc(collection(db, 'paycheck_estimates'), { userId: m.userId, ...docData })
+        await addDoc(collection(db, 'paycheck_estimates'), { userId: m.userId, ...docData, createdAt: serverTimestamp() })
       }
       await store.delete(m.id)
     } catch (err) {
@@ -59,7 +59,11 @@ if (typeof window !== 'undefined') {
 
 export async function registerBackgroundSync() {
   if ('serviceWorker' in navigator && 'SyncManager' in window) {
-    const reg = await navigator.serviceWorker.ready
-    try { await reg.sync.register('flush-queue') } catch {}
+    try {
+        const reg = await navigator.serviceWorker.ready
+        await reg.sync.register('flush-queue') 
+    } catch (e) {
+        console.error('Background sync registration failed:', e)
+    }
   }
 }
