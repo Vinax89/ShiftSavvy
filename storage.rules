@@ -24,7 +24,5 @@ service firebase.storage {
     // imports-archive — deny all (Functions may use GCS IAM if needed)
     match /imports-archive/{path=**} { allow read, write: if false; }
 
-    // default deny
-    match /{path=**} { allow read, write: if false; }
   }
 }

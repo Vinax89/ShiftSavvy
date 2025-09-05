@@ -11,6 +11,7 @@ service cloud.firestore {
     function isNonNegInt(n) { return n is int && n >= 0; }
     function inRange(n, lo, hi) { return n is int && n >= lo && n <= hi; }
     function isBps(n) { return inRange(n, 0, 100000); } // 0–1000%
+    function requireV2(d) { return d.schemaVersion == 2; }
 
     // Prevent changing userId on update
     function unchangedUserId() {
@@ -37,16 +38,17 @@ service cloud.firestore {
       allow delete: if ownerOnResource();
     }
 
-    // ---- transactions (owner-scope; loose schema for now) ----
+    // ---- transactions (owner-scope; require v2) ----
     match /transactions/{id} {
       allow read: if ownerOnResource();
-      allow create: if ownerOnCreate();
-      allow update, delete: if ownerOnResource() && unchangedUserId();
+      allow create: if ownerOnCreate() && requireV2(request.resource.data);
+      allow update, delete: if ownerOnResource() && unchangedUserId() && requireV2(request.resource.data);
     }
 
     // ---- obligations ----
     function validateObligation(d) {
-      return d.keys().hasAll(['userId','name','amountCents','cadence','nextDueDate']) &&
+      return d.keys().hasAll(['userId','name','amountCents','cadence','nextDueDate','schemaVersion']) &&
+             requireV2(d) &&
              isNonNegInt(d.amountCents) && isoDate(d.nextDueDate) &&
              ['monthly','weekly','biweekly'].hasAny([d.cadence]);
     }
@@ -59,7 +61,8 @@ service cloud.firestore {
 
     // ---- debts_accounts ----
     function validateDebt(d) {
-      return d.keys().hasAll(['userId','name','balanceCents','aprBps','minPaymentCents']) &&
+      return d.keys().hasAll(['userId','name','balanceCents','aprBps','minPaymentCents','schemaVersion']) &&
+             requireV2(d) &&
              isNonNegInt(d.balanceCents) && isBps(d.aprBps) && isNonNegInt(d.minPaymentCents);
     }
     match /debts_accounts/{id} {
@@ -102,10 +105,6 @@ service cloud.firestore {
       allow create: if ownerOnCreate() && validateEstimateCreate(request.resource.data);
       allow update: if ownerOnResource() && validateEstimateUpdate(request.resource.data);
       allow delete: if ownerOnResource();
-    }
-
-    match /{path=**} {
-      allow read, write: if false;
     }
   }
 }
