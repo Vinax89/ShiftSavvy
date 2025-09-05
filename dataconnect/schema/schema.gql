@@ -1,56 +1,52 @@
-type expense @table(name: "expenses") {
-  id: String! @pk
-  amount: Int
-  category: String
-  note: String
-  occurred_at: Timestamp
-  user_id: String
+type User @table {
+  displayName: String!
+  email: String!
+  createdAt: Timestamp!
+  photoUrl: String
+  timezone: String
 }
 
-type shift @table(name: "shifts") {
-  id: String! @pk
-  start_time: Timestamp
-  end_time: Timestamp
-  hourly_rate: Float
-  user_id: String
+type Shift @table {
+  user: User
+  shiftDate: Date!
+  startTime: Timestamp!
+  endTime: Timestamp!
+  hourlyRate: Float!
+  estimatedEarnings: Float!
+  createdAt: Timestamp!
+  location: String
+  notes: String
 }
 
-type Query {
-  expense(id: String!): expense @permission(expression: "user_id == auth.token.uid")
-  expense_list(
-    limit: Int = 100
-    offset: Int = 0
-    order_by: [expense_order!]
-    where: expense_bool_exp
-  ): [expense!]! @permission(expression: "user_id == auth.token.uid")
-  shift(id: String!): shift @permission(expression: "user_id == auth.token.uid")
-  shift_list(
-    limit: Int = 100
-    offset: Int = 0
-    order_by: [shift_order!]
-    where: shift_bool_exp
-  ): [shift!]! @permission(expression: "user_id == auth.token.uid")
+type Income @table {
+  user: User
+  amount: Float!
+  incomeDate: Date!
+  category: String!
+  createdAt: Timestamp!
+  description: String
+  sourceShift: Shift
 }
 
-type Mutation {
-  expense_insert(
-    data: expense_insert_input!
-  ): expense @permission(expression: "data.user_id == auth.token.uid")
-  expense_update(
-    id: String!
-    data: expense_update_input!
-  ): expense @permission(expression: "query.expense(id: id).user_id == auth.token.uid")
-  expense_delete(
-    id: String!
-  ): expense @permission(expression: "query.expense(id: id).user_id == auth.token.uid")
-  shift_insert(
-    data: shift_insert_input!
-  ): shift @permission(expression: "data.user_id == auth.token.uid")
-  shift_update(
-    id: String!
-    data: shift_update_input!
-  ): shift @permission(expression: "query.shift(id: id).user_id == auth.token.uid")
-  shift_delete(
-    id: String!
-  ): shift @permission(expression: "query.shift(id: id).user_id == auth.token.uid")
+type Expense @table {
+  user: User
+  amount: Float!
+  expenseDate: Date!
+  category: String!
+  createdAt: Timestamp!
+  description: String
+  isRecurring: Boolean
+  recurringPeriod: String
+}
+
+type FinancialGoal @table {
+  user: User
+  goalName: String!
+  targetAmount: Float!
+  currentAmount: Float!
+  startDate: Date!
+  createdAt: Timestamp!
+  targetDate: Date
+  description: String
+  isAchieved: Boolean
 }
