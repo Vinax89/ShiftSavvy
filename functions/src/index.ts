@@ -1,3 +1,4 @@
+
 import { onRequest } from 'firebase-functions/v2/https'
 import { initializeApp, getApps, applicationDefault } from 'firebase-admin/app'
 import { REGION } from './config'

@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
@@ -24,5 +25,7 @@ service firebase.storage {
     // imports-archive — deny all (Functions may use GCS IAM if needed)
     match /imports-archive/{path=**} { allow read, write: if false; }
 
+    // default deny
+    match /{path=**} { allow read, write: if false; }
   }
 }

@@ -1,3 +1,4 @@
+
 const CACHE = 'nf-shell-v1'
 const PRECACHE = [ '/', '/manifest.webmanifest', '/favicon.ico' ]
 self.addEventListener('install', (e) => {

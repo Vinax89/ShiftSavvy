@@ -1,3 +1,4 @@
+
 'use client'
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import { collection, getDocs, orderBy, query, where, limit, startAfter } from 'firebase/firestore'
@@ -157,6 +158,7 @@ function exportCsv(rows: any[], uid: string) {
     return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s
   }
   const header = ['id','postedDate','description','amountCents','currency','accountId','possibleDuplicateOf','src.kind','src.externalId']
+  const lines = [header.join(',')]
   for (const r of rows) {
     lines.push([
       r.id,
