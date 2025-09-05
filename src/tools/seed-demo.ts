@@ -43,8 +43,8 @@ async function seed(uid: string) {
   batch.set(adminDb.collection('tax_profiles').doc(uid), {
     userId: uid,
     filingStatus: 'single',
-    federal: { brackets: [ { upTo: 11000, rate: 0.1 }, { upTo: 44725, rate: 0.12 }, { upTo: 95375, rate: 0.22 } ] },
-    fica: { ssRate: 0.062, medicareRate: 0.0145, ssWageBase: 168600 },
+    federal: { brackets: [ { upToDollars: 11000, rateBps: 1000 }, { upToDollars: 44725, rateBps: 1200 }, { upToDollars: 95375, rateBps: 2200 } ] },
+    fica: { ssRateBps: 620, medicareRateBps: 145, ssWageBaseDollars: 168600 },
     state: { code: 'NONE', brackets: [] },
   })
 
