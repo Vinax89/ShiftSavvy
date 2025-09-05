@@ -5,13 +5,12 @@ import { stableStringify } from '@/domain/canonical'
 import { sha256Base64 } from '@/domain/hash'
 import { summarizeInputs } from '@/domain/paycheck.summary'
 import { evaluatePaycheck } from '@/domain/paycheck'
+import { enqueueEstimate } from '@/lib/queue'
 
 export async function saveEstimate(userId: string, payload: any) {
-  const ref = collection(db, 'paycheck_estimates')
   // We remove the userId from the doc payload itself as it's already in the path or as a top-level key
   const { userId: _, ...docData } = payload;
-  return addDoc(ref, {
-    userId,
+  return enqueueEstimate(userId, {
     createdAt: serverTimestamp(),
     ...docData,
   })

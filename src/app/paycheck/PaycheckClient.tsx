@@ -12,6 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { buildEstimateDoc, saveEstimate, listEstimates } from '@/data/paycheck-estimates'
 import { fmtUSD } from '@/lib/money'
+import { registerBackgroundSync } from '@/lib/queue'
+
 
 export default function PaycheckClient() {
   const [res, setRes] = useState<any>(null)
@@ -25,50 +27,51 @@ export default function PaycheckClient() {
   const uid = 'demo-uid' // replace with real auth
 
   useEffect(() => {
+    registerBackgroundSync();
     (async () => {
-      setLoading(true)
+      setLoading(true);
       try {
-        const q = query(collection(db, 'shifts'), where('userId', '==', uid))
-        const snap = await getDocs(q)
-        const shiftsData = snap.docs.map(d => d.data())
-        setShifts(shiftsData)
+        const q = query(collection(db, 'shifts'), where('userId', '==', uid));
+        const snap = await getDocs(q);
+        const shiftsData = snap.docs.map(d => d.data());
+        setShifts(shiftsData);
         
-        const taxSnap = await getDocs(query(collection(db, 'tax_profiles'), where('userId','==',uid)))
+        const taxSnap = await getDocs(query(collection(db, 'tax_profiles'), where('userId','==',uid)));
         if (taxSnap.empty) {
           console.error("No tax profile found for user. Make sure to seed the database first by running 'npm run seed:demo'.");
           setLoading(false);
           return;
         }
-        const taxData = taxSnap.docs[0]?.data()
-        setTax(taxData)
+        const taxData = taxSnap.docs[0]?.data();
+        setTax(taxData);
 
-        const aPolicy = { baseRateCents: 4500, diffs: { nightBps: 2000, weekendBps: 1500, holidayBps: 10000, chargeAddlPerHourCents: 200, bonusPerShiftCents: 0 }, ot: { weeklyHours: 40, otMultiplierBps: 15000 } }
-        setPolicy(aPolicy)
+        const aPolicy = { baseRateCents: 4500, diffs: { nightBps: 2000, weekendBps: 1500, holidayBps: 10000, chargeAddlPerHourCents: 200, bonusPerShiftCents: 0 }, ot: { weeklyHours: 40, otMultiplierBps: 15000 } };
+        setPolicy(aPolicy);
         
-        const ytdData = { grossCents: 0 }
-        setYtd(ytdData)
+        const ytdData = { grossCents: 0 };
+        setYtd(ytdData);
 
-        setRes(evaluatePaycheck({ shifts: shiftsData, policy: aPolicy, tax: taxData, ytd: ytdData }))
+        setRes(evaluatePaycheck({ shifts: shiftsData, policy: aPolicy, tax: taxData, ytd: ytdData }));
         
         const recentEstimates = await listEstimates(uid);
         setRecent(recentEstimates);
 
       } catch (error) {
-        console.error("Error calculating paycheck:", error)
+        console.error("Error calculating paycheck:", error);
       }
-      setLoading(false)
-    })()
-  }, [])
+      setLoading(false);
+    })();
+  }, []);
 
   async function onSave() {
     if (!res) return;
     try {
-      const doc = await buildEstimateDoc({ userId: uid, shifts, policy, tax, ytd, periodStart: '2025-09-01', periodEnd: '2025-09-14' })
-      await saveEstimate(uid, doc)
-      const newEstimates = await listEstimates(uid)
-      setRecent(newEstimates)
+      const doc = await buildEstimateDoc({ userId: uid, shifts, policy, tax, ytd, periodStart: '2025-09-01', periodEnd: '2025-09-14' });
+      await saveEstimate(uid, doc);
+      const newEstimates = await listEstimates(uid);
+      setRecent(newEstimates);
     } catch(e) {
-      console.error("Failed to save estimate", e)
+      console.error("Failed to save estimate", e);
     }
   }
 
