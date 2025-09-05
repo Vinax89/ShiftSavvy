@@ -20,16 +20,19 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
+    const functionsBase = 'http://127.0.0.1:5001/shiftsavvy-2l0pa/us-central1';
     return [
       {
         source: '/api/estimates/:path*',
-        destination:
-          'http://127.0.0.1:5001/shiftsavvy-2l0pa/us-central1/api_estimates_:path*',
+        destination: `${functionsBase}/api_estimates_:path*`,
       },
       {
         source: '/api/health',
-        destination:
-          'http://127.0.0.1:5001/shiftsavvy-2l0pa/us-central1/api_health',
+        destination: `${functionsBase}/api_health`,
+      },
+      {
+        source: '/api/transactions/export.csv',
+        destination: `${functionsBase}/api_transactions_exportCsv`,
       },
     ];
   },

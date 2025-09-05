@@ -5,6 +5,7 @@ import { withCors } from './cors'
 import { sendError } from './errors'
 import { health } from './routes/health'
 import { createEstimate } from './routes/estimates'
+import { api_transactions_exportCsv } from './routes/transactions.export'
 
 if (!getApps().length) initializeApp({ credential: applicationDefault() })
 
@@ -15,3 +16,5 @@ export const api_health = onRequest({ region: REGION }, (req, res) =>
 export const api_estimates_create = onRequest({ region: REGION }, (req, res) =>
   withCors(async (req, res) => { try { await createEstimate(req, res) } catch (e) { sendError(res, e) } })(req, res)
 )
+
+export { api_transactions_exportCsv };

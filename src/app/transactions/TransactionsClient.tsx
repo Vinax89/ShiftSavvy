@@ -1,14 +1,49 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import { collection, getDocs, orderBy, query, where, limit, startAfter } from 'firebase/firestore'
 import { db } from '@/lib/firebase.client'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { getAuth } from 'firebase/auth'
 
 const PAGE_SIZE = 50
 const fmtUSD = (cents: number) => (cents/100).toLocaleString(undefined, { style: 'currency', currency: 'USD' })
+
+
+function useInfinite(onHit: () => void, enabled: boolean) {
+  const ref = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!enabled || !ref.current) return
+    const ob = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) onHit()
+    }, { root: null, rootMargin: '600px 0px', threshold: 0 })
+    ob.observe(ref.current)
+    return () => ob.disconnect()
+  }, [enabled, onHit])
+  return ref
+}
+
+async function exportServer({ account, from, to }: { account?: string; from?: string; to?: string }) {
+  const token = await getAuth().currentUser?.getIdToken()
+  if (!token) {
+      alert("Authentication required to export.");
+      return;
+  }
+  const u = new URL('/api/transactions/export.csv', location.origin)
+  if (account) u.searchParams.set('accountId', account)
+  if (from) u.searchParams.set('from', from)
+  if (to) u.searchParams.set('to', to)
+  const res = await fetch(u.toString(), { headers: { Authorization: `Bearer ${token}` } })
+  if (!res.ok) throw new Error('Export failed')
+  const blob = await res.blob()
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `transactions-export-${new Date().toISOString().slice(0,10)}.csv`
+  a.click(); URL.revokeObjectURL(a.href)
+}
+
 
 export default function TransactionsClient() {
   const [items, setItems] = useState<any[]>([])
@@ -22,7 +57,7 @@ export default function TransactionsClient() {
   const [to, setTo] = useState('')   // YYYY-MM-DD
   const uid = 'demo-uid' // TODO: real auth
 
-  async function loadPage(reset=false) {
+  const loadPage = useCallback(async (reset=false) => {
     setLoading(true)
     try {
       let qy: any = query(
@@ -44,7 +79,8 @@ export default function TransactionsClient() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [account, from, to, lastDoc, uid]);
+
 
   // initial + filter changes
   useEffect(() => { loadPage(true) }, [account, from, to])
@@ -60,6 +96,10 @@ export default function TransactionsClient() {
     if (!s) return items
     return items.filter(r => String(r.description||'').toLowerCase().includes(s))
   }, [items, qtext])
+  
+  const onHit = useCallback(() => { if (!loading && hasMore) loadPage(false) }, [loading, hasMore, loadPage])
+  const sentinelRef = useInfinite(onHit, true)
+
 
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-4">
@@ -96,10 +136,16 @@ export default function TransactionsClient() {
           </Card>
         ))}
       </div>
+      
+      <div ref={sentinelRef} className="h-8" />
+      {loading && <p className="text-center">Loading...</p>}
+      {!hasMore && <p className="text-center text-muted-foreground">End of transactions.</p>}
+
 
       <div className="flex items-center justify-between pt-2">
-        <Button variant="secondary" onClick={() => exportCsv(filtered, uid)} disabled={!filtered.length}>Export CSV</Button>
-        <Button onClick={() => loadPage(false)} disabled={!hasMore || loading}>{loading ? 'Loading…' : hasMore ? 'Load more' : 'No more'}</Button>
+        <Button variant="secondary" onClick={() => exportCsv(filtered, uid)} disabled={!filtered.length}>Export CSV (Client)</Button>
+        <Button variant="secondary" onClick={() => exportServer({ account, from, to })} disabled={!items.length}>Export CSV (Server)</Button>
+
       </div>
     </div>
   )
