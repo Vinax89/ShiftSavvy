@@ -38,7 +38,7 @@ service cloud.firestore {
       allow delete: if ownerOnResource();
     }
 
-    // ---- transactions (owner-scope; require v2) ----
+    // ---- transactions v2 (immutable core; allow notes/category edits) ----
     match /transactions/{id} {
       function isV2(d) { return d.schemaVersion == 2; }
       function baseKeysOK(d) {
@@ -49,7 +49,7 @@ service cloud.firestore {
       allow update: if ownerOnResource()
         && isV2(request.resource.data)
         && baseKeysOK(request.resource.data)
-        // immutable core
+        // immutable core fields
         && request.resource.data.userId == resource.data.userId
         && request.resource.data.accountId == resource.data.accountId
         && request.resource.data.postedDate == resource.data.postedDate
@@ -59,6 +59,7 @@ service cloud.firestore {
         && request.resource.data.src == resource.data.src;
       allow delete: if ownerOnResource();
     }
+
 
     // ---- obligations ----
     function validateObligation(d) {
@@ -105,11 +106,12 @@ service cloud.firestore {
     // ---- paycheck_estimates (lock to schemaVersion:2 + immutable fields) ----
     function validateEstimateCreate(d) {
       return d.schemaVersion == 2 &&
-             d.keys().hasAll(['userId','periodStart','periodEnd','inputsHash','summary','result','schemaVersion']) &&
+             d.keys().hasAll(['userId','periodStart','periodEnd','inputsHash','summary','result','schemaVersion','createdAt']) &&
              isoDate(d.periodStart) && isoDate(d.periodEnd) &&
              d.inputsHash is string && d.summary is map && d.result is map;
     }
     function validateEstimateUpdate(d) {
+      // allow server timestamps on createdAt; disallow mutating canonical inputs/hash
       return d.schemaVersion == resource.data.schemaVersion &&
              d.inputsHash == resource.data.inputsHash &&
              unchangedUserId();
