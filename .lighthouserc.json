@@ -1,0 +1,17 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "pnpm --filter web dev",
+      "url": ["http://localhost:3000"],
+      "numberOfRuns": 1
+    },
+    "assert": {
+      "assertions": {
+        "first-contentful-paint": ["warn", {"maxNumericValue": 3000}],
+        "interactive": ["error", {"maxNumericValue": 2500}],
+        "total-byte-weight": ["error", {"maxNumericValue": 250000}],
+        "uses-long-cache-ttl": "warn"
+      }
+    }
+  }
+}
