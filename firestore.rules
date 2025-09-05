@@ -7,7 +7,7 @@ service cloud.firestore {
     function ownerOnCreate() { return isAuthed() && request.resource.data.userId == request.auth.uid; }
     function ownerOnResource() { return isAuthed() && resource.data.userId == request.auth.uid; }
 
-    function isoDate(s) { return s is string && s.matches('^\\d{4}-\\d{2}-\\d{2}$'); }
+    function isoDate(s) { return s is string && s.matches('^\d{4}-\d{2}-\d{2}$'); }
     function isNonNegInt(n) { return n is int && n >= 0; }
     function inRange(n, lo, hi) { return n is int && n >= lo && n <= hi; }
     function isBps(n) { return inRange(n, 0, 100000); } // 0–1000%
@@ -38,7 +38,7 @@ service cloud.firestore {
       allow delete: if ownerOnResource();
     }
 
-    // ---- transactions (owner-scope; require v2) ----
+    // ---- transactions v2 (immutable core; allow notes/category edits) ----
     match /transactions/{id} {
       function isV2(d) { return d.schemaVersion == 2; }
       function baseKeysOK(d) {
@@ -124,5 +124,8 @@ service cloud.firestore {
       allow update: if ownerOnResource() && validateEstimateUpdate(request.resource.data);
       allow delete: if ownerOnResource();
     }
+
+    // ---- default deny (no other top-level collections) ----
+    match /{document=**} { allow read, write: if false; }
   }
 }
