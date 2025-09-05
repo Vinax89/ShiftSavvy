@@ -8,6 +8,7 @@ import { getFirestore } from 'firebase-admin/firestore'
 import { ZTransactionV2 } from '../domain/transactions.schema'
 import { stableStringify } from '../domain/canonical'
 import { sha256Base64Url } from './lib/hash-url'
+import { findSoftDuplicate } from './lib/dup-detect'
 
 if (!getApps().length) {
     initializeApp({ projectId: process.env.FIREBASE_PROJECT_ID, credential: applicationDefault() })
@@ -49,7 +50,9 @@ async function importCSV(file: string, userId: string, accountId: string) {
       importedAt: new Date().toISOString(),
       importerVersion: '2025-09-05.v1',
     }
-    results.push(await upsert({ userId, accountId, postedDate, description, amountCents, currency: 'USD', src, schemaVersion: 2 }))
+    const dupId = await findSoftDuplicate(db, { userId, accountId, postedDate, amountCents, description })
+    const doc = { userId, accountId, postedDate, description, amountCents, currency: 'USD', src, schemaVersion: 2, possibleDuplicateOf: dupId }
+    results.push(await upsert(doc))
   }
   return results
 }
@@ -73,7 +76,9 @@ async function importOFX2(file: string, userId: string, accountId: string) {
       importedAt: new Date().toISOString(),
       importerVersion: '2025-09-05.v1',
     }
-    out.push(await upsert({ userId, accountId, postedDate, description, amountCents, currency: 'USD', src, schemaVersion: 2 }))
+    const dupId = await findSoftDuplicate(db, { userId, accountId, postedDate, amountCents, description })
+    const doc = { userId, accountId, postedDate, description, amountCents, currency: 'USD', src, schemaVersion: 2, possibleDuplicateOf: dupId }
+    out.push(await upsert(doc))
   }
   return out
 }
