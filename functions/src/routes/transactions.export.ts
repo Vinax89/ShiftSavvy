@@ -3,6 +3,7 @@ import { onRequest } from 'firebase-functions/v2/https'
 import { getApps, initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore, QueryDocumentSnapshot } from 'firebase-admin/firestore'
+import { createGzip } from 'node:zlib'
 
 if (!getApps().length) initializeApp()
 
@@ -46,10 +47,18 @@ export const api_transactions_exportCsv = onRequest({ region: 'us-central1', cor
     if (from) q = q.where('postedDate','>=', from)
     if (to) q = q.where('postedDate','<=', to)
 
-    // streaming headers
+    const wantsGzip = /\bgzip\b/i.test(String(req.headers['accept-encoding'] || '')) || req.query.gzip === '1'
+    const write = (chunk: string) => wantsGzip ? gz.write(chunk) : res.write(chunk)
+    const end = () => wantsGzip ? gz!.end() : res.end()
+
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+    if (wantsGzip) res.setHeader('Content-Encoding', 'gzip')
     res.setHeader('Content-Disposition', `attachment; filename="transactions-${uid}-${Date.now()}.csv"`)
-    res.write('id,postedDate,description,amountCents,currency,accountId,possibleDuplicateOf,src.kind,src.externalId\n')
+
+    const gz = wantsGzip ? createGzip() : null
+    if (gz) gz.pipe(res)
+
+    write('id,postedDate,description,amountCents,currency,accountId,possibleDuplicateOf,src.kind,src.externalId\n')
 
     const PAGE = 2000
     let last: QueryDocumentSnapshot | undefined
@@ -60,7 +69,7 @@ export const api_transactions_exportCsv = onRequest({ region: 'us-central1', cor
       if (snap.empty) break
       for (const doc of snap.docs) {
         const r: any = doc.data()
-        res.write([
+        write([
           esc(doc.id), esc(r.postedDate), esc(r.description), esc(r.amountCents), esc(r.currency), esc(r.accountId),
           esc(r.possibleDuplicateOf ?? ''), esc(r.src?.kind ?? ''), esc(r.src?.externalId ?? '')
         ].join(',') + '\n')
@@ -68,7 +77,7 @@ export const api_transactions_exportCsv = onRequest({ region: 'us-central1', cor
       last = snap.docs[snap.docs.length - 1]
       if (snap.size < PAGE) break
     }
-    res.end()
+    end()
   } catch (err: any) {
     console.error('export failed', err)
     if (!res.headersSent) res.status(500)
