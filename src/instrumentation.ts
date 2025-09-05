@@ -1,14 +1,23 @@
+import * as Sentry from '@sentry/nextjs'
+
 export async function register() {
-  if (process.env.NODE_ENV !== 'production') return;
-  try {
-    const Sentry = await import('@sentry/nextjs');
-    Sentry.init({
-      dsn: process.env.SENTRY_DSN,
-      tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? '0.1'),
-      replaysOnErrorSampleRate: 1.0,
-      replaysSessionSampleRate: 0.0,
-    });
-  } catch (e) {
-    // Sentry is not a dependency, so this will fail gracefully.
-  }
+  if (process.env.NODE_ENV !== 'production') return
+  Sentry.init({
+    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    enabled: process.env.NODE_ENV === 'production',
+    tracesSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1.0,
+    replaysSessionSampleRate: 0.0,
+    release: process.env.NEXT_PUBLIC_SENTRY_RELEASE
+      ?? process.env.VERCEL_GIT_COMMIT_SHA
+      ?? process.env.GITHUB_SHA,
+    beforeSend(event, hint) {
+      const msg = (hint?.originalException as any)?.message ?? ''
+      // Reduce noise from PWA/offline & hot updates
+      if (typeof msg === 'string' && (msg.includes('ChunkLoadError') || msg.includes('NetworkError'))) {
+        return null
+      }
+      return event
+    },
+  })
 }

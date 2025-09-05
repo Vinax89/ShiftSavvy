@@ -1,31 +1,111 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // --- Common helpers ---
     function isAuthed() { return request.auth != null; }
-    function isOwner() { return isAuthed() && request.auth.uid == resource.data.userId; }
-    function creatingAsOwner() { return isAuthed() && request.auth.uid == request.resource.data.userId; }
+    function isOwner(uid) { return isAuthed() && request.auth.uid == uid; }
+    function ownerOnCreate() { return isAuthed() && request.resource.data.userId == request.auth.uid; }
+    function ownerOnResource() { return isAuthed() && resource.data.userId == request.auth.uid; }
 
-    // Users (self only)
+    function isoDate(s) { return s is string && s.matches('^\\d{4}-\\d{2}-\\d{2}$'); }
+    function isNonNegInt(n) { return n is int && n >= 0; }
+    function inRange(n, lo, hi) { return n is int && n >= lo && n <= hi; }
+    function isBps(n) { return inRange(n, 0, 100000); } // 0–1000%
+
+    // Prevent changing userId on update
+    function unchangedUserId() {
+      return !('userId' in request.resource.data) || request.resource.data.userId == resource.data.userId;
+    }
+
+    // ---- users (self-only; conservative deletes) ----
     match /users/{uid} {
-      allow read, write: if isAuthed() && request.auth.uid == uid;
+      allow read, update: if isAuthed() && request.auth.uid == uid && unchangedUserId();
+      allow create: if isAuthed() && request.auth.uid == uid;
+      allow delete: if false; // keep audit trail; adjust if needed
     }
 
-    // Generic owner-scoped collections used in Part B
-    match /{colName=shifts|transactions|obligations|debts_accounts}/{id} {
-      allow read, update, delete: if isOwner();
-      allow create: if creatingAsOwner();
+    // ---- shifts ----
+    function validateShift(d) {
+      return d.keys().hasOnly(['userId','date','start','end','tags']) &&
+             isoDate(d.date) && d.start is string && d.end is string &&
+             d.tags is list && d.tags.size() <= 5;
+    }
+    match /shifts/{id} {
+      allow read: if ownerOnResource();
+      allow create: if ownerOnCreate() && validateShift(request.resource.data);
+      allow update: if ownerOnResource() && validateShift(request.resource.data) && unchangedUserId();
+      allow delete: if ownerOnResource();
     }
 
-    // Tax profile is keyed by arbitrary id; enforce owner in document body
+    // ---- transactions (owner-scope; loose schema for now) ----
+    match /transactions/{id} {
+      allow read: if ownerOnResource();
+      allow create: if ownerOnCreate();
+      allow update, delete: if ownerOnResource() && unchangedUserId();
+    }
+
+    // ---- obligations ----
+    function validateObligation(d) {
+      return d.keys().hasAll(['userId','name','amountCents','cadence','nextDueDate']) &&
+             isNonNegInt(d.amountCents) && isoDate(d.nextDueDate) &&
+             ['monthly','weekly','biweekly'].hasAny([d.cadence]);
+    }
+    match /obligations/{id} {
+      allow read: if ownerOnResource();
+      allow create: if ownerOnCreate() && validateObligation(request.resource.data);
+      allow update: if ownerOnResource() && validateObligation(request.resource.data) && unchangedUserId();
+      allow delete: if ownerOnResource();
+    }
+
+    // ---- debts_accounts ----
+    function validateDebt(d) {
+      return d.keys().hasAll(['userId','name','balanceCents','aprBps','minPaymentCents']) &&
+             isNonNegInt(d.balanceCents) && isBps(d.aprBps) && isNonNegInt(d.minPaymentCents);
+    }
+    match /debts_accounts/{id} {
+      allow read: if ownerOnResource();
+      allow create: if ownerOnCreate() && validateDebt(request.resource.data);
+      allow update: if ownerOnResource() && validateDebt(request.resource.data) && unchangedUserId();
+      allow delete: if ownerOnResource();
+    }
+
+    // ---- tax_profiles (v2 shapes: bps for rates; dollars for wage base) ----
+    function validateTaxProfile(d) {
+      return d.keys().hasAll(['userId','filingStatus','federal','state','fica']) &&
+             d.federal is map && d.state is map && d.fica is map &&
+             d.federal.brackets is list && d.state.brackets is list &&
+             isNonNegInt(d.fica.ssRateBps) && isNonNegInt(d.fica.medicareRateBps) &&
+             d.fica.ssWageBaseDollars is number;
+    }
     match /tax_profiles/{id} {
-      allow read, update, delete: if isOwner();
-      allow create: if creatingAsOwner();
+      allow read: if ownerOnResource();
+      allow create: if ownerOnCreate() && validateTaxProfile(request.resource.data);
+      allow update: if ownerOnResource() && validateTaxProfile(request.resource.data) && unchangedUserId();
+      allow delete: if ownerOnResource();
     }
 
-    // Paycheck estimates written by the client
+    // ---- paycheck_estimates (lock to schemaVersion:2 + immutable fields) ----
+    function validateEstimateCreate(d) {
+      return d.schemaVersion == 2 &&
+             d.keys().hasAll(['userId','periodStart','periodEnd','inputsHash','summary','result','schemaVersion','createdAt']) &&
+             isoDate(d.periodStart) && isoDate(d.periodEnd) &&
+             d.inputsHash is string && d.summary is map && d.result is map;
+    }
+    function validateEstimateUpdate(d) {
+      // allow server timestamps on createdAt; disallow mutating canonical inputs/hash
+      return d.schemaVersion == resource.data.schemaVersion &&
+             d.inputsHash == resource.data.inputsHash &&
+             unchangedUserId();
+    }
     match /paycheck_estimates/{id} {
-      allow read, update, delete: if isOwner();
-      allow create: if creatingAsOwner();
+      allow read: if ownerOnResource();
+      allow create: if ownerOnCreate() && validateEstimateCreate(request.resource.data);
+      allow update: if ownerOnResource() && validateEstimateUpdate(request.resource.data);
+      allow delete: if ownerOnResource();
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
     }
   }
 }
