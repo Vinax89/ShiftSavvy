@@ -3,12 +3,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { parse } from 'csv-parse'              // streaming CSV parser
 import { XMLParser } from 'fast-xml-parser'    // OFX 2.x/QFX (XML) parser
-import { initializeApp, applicationDefault } from 'firebase-admin/app'
+import { initializeApp, applicationDefault, getApps } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
 import { ZTransactionV2 } from '../domain/transactions.schema'
 import { stableStringify } from '../domain/canonical'
 import { sha256Base64Url } from './lib/hash-url'
-import { getApps } from 'firebase-admin/app'
 
 if (!getApps().length) {
     initializeApp({ projectId: process.env.FIREBASE_PROJECT_ID, credential: applicationDefault() })

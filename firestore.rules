@@ -110,7 +110,6 @@ service cloud.firestore {
              d.inputsHash is string && d.summary is map && d.result is map;
     }
     function validateEstimateUpdate(d) {
-      // allow server timestamps on createdAt; disallow mutating canonical inputs/hash
       return d.schemaVersion == resource.data.schemaVersion &&
              d.inputsHash == resource.data.inputsHash &&
              unchangedUserId();
