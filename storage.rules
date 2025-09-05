@@ -4,7 +4,7 @@ service firebase.storage {
     function isAuthed() { return request.auth != null; }
     function isOwner(uid) { return isAuthed() && request.auth.uid == uid; }
 
-    // Restrict file types + size (configurable)
+    // Restrict file types + size
     function isAllowedContent() {
       return request.resource.contentType.matches('image/.*') ||
              request.resource.contentType == 'application/pdf';
@@ -23,6 +23,5 @@ service firebase.storage {
 
     // imports-archive — deny all (Functions may use GCS IAM if needed)
     match /imports-archive/{path=**} { allow read, write: if false; }
-
   }
 }
