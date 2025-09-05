@@ -3,7 +3,7 @@ import { getFirestore } from 'firebase-admin/firestore'
 
 const app = getApps().length
   ? getApps()[0]
-  : initializeApp({ projectId: process.env.FIREBASE_PROJECT_ID }, applicationDefault())
+  : initializeApp({ credential: applicationDefault(), projectId: process.env.FIREBASE_PROJECT_ID })
 
 // Either omit the second arg (default DB) or pass { databaseId: '(default)' }
-export const adminDb = getFirestore(app)
+export const adminDb = getFirestore(app /*, '(default)'*/)

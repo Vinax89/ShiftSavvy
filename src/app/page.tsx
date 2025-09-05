@@ -7,9 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import NetIncomeChart from '@/components/dashboard/net-income-chart';
 import UpcomingShifts from '@/components/dashboard/upcoming-shifts';
 import UpcomingBills from '@/components/dashboard/upcoming-bills';
-import PaycheckSimulation from '@/components/dashboard/paycheck-simulation';
 import SavingsGuidance from '@/components/dashboard/savings-guidance';
 import { OvertimeAlert } from '@/components/dashboard/overtime-alert';
+import PaycheckSimulation from '@/components/dashboard/paycheck-simulation';
+
 
 export default function DashboardPage() {
   return (

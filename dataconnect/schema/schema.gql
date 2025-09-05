@@ -1,0 +1,52 @@
+type User @table {
+  displayName: String!
+  email: String!
+  createdAt: Timestamp!
+  photoUrl: String
+  timezone: String
+}
+
+type Shift @table {
+  user: User
+  shiftDate: Date!
+  startTime: Timestamp!
+  endTime: Timestamp!
+  hourlyRate: Float!
+  estimatedEarnings: Float!
+  createdAt: Timestamp!
+  location: String
+  notes: String
+}
+
+type Income @table {
+  user: User
+  amount: Float!
+  incomeDate: Date!
+  category: String!
+  createdAt: Timestamp!
+  description: String
+  sourceShift: Shift
+}
+
+type Expense @table {
+  user: User
+  amount: Float!
+  expenseDate: Date!
+  category: String!
+  createdAt: Timestamp!
+  description: String
+  isRecurring: Boolean
+  recurringPeriod: String
+}
+
+type FinancialGoal @table {
+  user: User
+  goalName: String!
+  targetAmount: Float!
+  currentAmount: Float!
+  startDate: Date!
+  createdAt: Timestamp!
+  targetDate: Date
+  description: String
+  isAchieved: Boolean
+}

@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, MinusCircle } from 'lucide-react';
+import { PlusCircle, MinusCircle, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 export default function PaycheckSimulation() {
   const [shifts, setShifts] = useState(3);
@@ -25,8 +26,17 @@ export default function PaycheckSimulation() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">Paycheck Simulator</CardTitle>
-        <CardDescription>Experiment with your schedule to estimate your next paycheck.</CardDescription>
+        <div className="flex justify-between items-center">
+            <div>
+                <CardTitle className="font-headline">Paycheck Simulator</CardTitle>
+                <CardDescription>Experiment with your schedule.</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" asChild>
+                <Link href="/paycheck">
+                    Full Details <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+            </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="flex items-center justify-between space-x-4">

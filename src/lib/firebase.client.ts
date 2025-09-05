@@ -21,14 +21,11 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
 
 // Firestore + offline cache
 let db = getFirestore(app)
-if (typeof window !== 'undefined') {
-  try {
-    // Use new-style initializer to opt-in to durable local cache
-    db = initializeFirestore(app, { localCache: persistentLocalCache() })
-    enableIndexedDbPersistence(db).catch(() => {/* already enabled or not supported */})
-  } catch {/* older SDKs fallback to getFirestore */}
-}
-
+try {
+  // Use new-style initializer to opt-in to durable local cache
+  db = initializeFirestore(app, { localCache: persistentLocalCache() })
+  enableIndexedDbPersistence(db).catch(() => {/* already enabled or not supported */})
+} catch {/* older SDKs fallback to getFirestore */}
 
 // Auth (optionally emulator)
 const auth = getAuth(app)
