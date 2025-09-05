@@ -1,0 +1,30 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAuthed() { return request.auth != null; }
+    function isOwner(uid) { return isAuthed() && request.auth.uid == uid; }
+
+    // Restrict file types + size (configurable)
+    function isAllowedContent() {
+      return request.resource.contentType.matches('image/.*') ||
+             request.resource.contentType == 'application/pdf';
+    }
+    function isSmall() { return request.resource.size < 10 * 1024 * 1024; } // < 10 MiB
+
+    // paystubs and receipts — owner-only, type + size guarded
+    match /paystubs/{uid}/{filename=**} {
+      allow read: if isOwner(uid);
+      allow write: if isOwner(uid) && isAllowedContent() && isSmall();
+    }
+    match /receipts/{uid}/{filename=**} {
+      allow read: if isOwner(uid);
+      allow write: if isOwner(uid) && isAllowedContent() && isSmall();
+    }
+
+    // imports-archive — deny all (Functions may use GCS IAM if needed)
+    match /imports-archive/{path=**} { allow read, write: if false; }
+
+    // default deny
+    match /{path=**} { allow read, write: if false; }
+  }
+}
