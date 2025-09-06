@@ -6,7 +6,7 @@ import {
   initializeFirestore,
   persistentLocalCache,
   connectFirestoreEmulator,
-  enableIndexedDbPersistence,
+  enableMultiTabIndexedDbPersistence,
 } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -29,7 +29,13 @@ if (typeof window !== 'undefined') {
       useFetchStreams: false,
       localCache: persistentLocalCache(),
     });
-    enableIndexedDbPersistence(db).catch(() => {/* already enabled or not supported */});
+    enableMultiTabIndexedDbPersistence(db).catch((err) => {
+        if (err.code === 'failed-precondition') {
+            console.warn('Multiple tabs open, persistence can only be enabled in one. Support for multiple tabs remains.');
+        } else if (err.code === 'unimplemented') {
+            console.warn('The current browser does not support all of the features required to enable persistence.');
+        }
+    });
   } catch (e) {
     db = getFirestore(app);
   }
