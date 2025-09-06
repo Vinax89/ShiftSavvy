@@ -15,10 +15,31 @@ if (isProd) {
   const { withSentryConfig } = require('@sentry/nextjs')
   exported = withSentryConfig(
     base,
-    // Sentry Webpack plugin options:
-    { silent: true },
-    // Sentry SDK options:
-    { hideSourceMaps: true }
+    {
+      // For all available options, see:
+      // https://github.com/getsentry/sentry-webpack-plugin#options
+
+      // Suppresses source map uploading logs during build
+      silent: true,
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+    },
+    {
+      // For all available options, see:
+      // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+
+      // Upload a larger set of source maps for prettier stack traces (increases build time)
+      widenClientFileUpload: true,
+
+      // Hides source maps from generated client bundles
+      hideSourceMaps: true,
+
+      // Automatically instrument Vercel Cron Monitors
+      automaticVercelMonitors: true,
+
+      // Disable tree-shaking to ensure all Sentry tree-shaking is performed by Next.js
+      disableTreeShaking: true,
+    }
   )
 }
 
