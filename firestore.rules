@@ -2,79 +2,50 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can read/write their own user doc
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // All user data is nested under /users/{uid}
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-    }
-    
-    // Looser for demo purposes. In prod, lock this down.
-    match /shifts/{shiftId} {
-      allow read, write: if request.auth != null;
-    }
-    match /tax_profiles/{docId} {
-      allow read, write: if request.auth != null;
-    }
-    match /debts_accounts/{docId} {
-       allow read, write: if request.auth != null;
-    }
-    match /obligations/{docId} {
-       allow read, write: if request.auth != null;
-    }
-     match /payoff_overrides/{docId} {
-       allow read, write: if request.auth != null;
-    }
-    match /payoff_plans/{docId} {
-       allow read, write: if request.auth != null;
-    }
-     match /payoff_plans_runs/{runId} {
-      allow read, write: if request.auth != null;
-      match /schedule/{ym} {
-        allow read, write: if request.auth != null;
+      allow read, write: if isOwner(uid);
+
+      // Transactions
+      match /transactions/{txnId} {
+        allow read, write: if isOwner(uid);
       }
-    }
 
-    match /paycheck_estimates/{estimateId} {
-      allow read, write: if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
-    
-    match /transactions/{txId} {
-      allow read, write: if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
+      // BNPL contracts (current storage)
+      match /bnpl/contracts/{contractId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /bnpl/contracts/{contractId}/{sub=**}/{id} {
+        allow read, write: if isOwner(uid);
+      }
 
-    // --- SPEC-3: Alerts & Settings ---
-    match /users/{userId} {
-      // Settings subcollection (single doc "app")
+      // BNPL events (audit trail)
+      match /bnpl/events/{eventId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      // Settings (single doc "app")
       match /settings/{docId} {
-        allow read, write: if request.auth != null
-                          && request.auth.uid == userId
-                          && docId == "app";
+        allow read, write: if isOwner(uid) && docId == "app";
       }
 
-      // Alerts subcollection (server creates; user can read & ack)
+      // Alerts: user can read / ack; server creates
       match /alerts/{alertId} {
-        allow read: if request.auth != null && request.auth.uid == userId;
-
-        // Only allow ack fields to change by the user
-        allow update: if request.auth != null
-                      && request.auth.uid == userId
-                      && request.resource.data.diff(resource.data).changedKeys().hasOnly(['ack', 'ackAt']);
-
-        // Prevent client-side creation/deletion
+        allow read: if isOwner(uid);
+        allow update: if isOwner(uid)
+                      && request.resource.data.diff(resource.data)
+                          .changedKeys().hasOnly(['ack','ackAt']);
         allow create, delete: if false;
       }
     }
 
-     match /users/{uid}/bnpl/contracts/{contractId} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      allow write: if false; // writes via Admin SDK only
-    }
-    match /users/{uid}/bnpl/contracts/{contractId}/installments/{instId} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      allow write: if false;
-    }
-    match /users/{uid}/bnpl/contracts/{contractId}/links/{linkId} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      allow write: if false;
-    }
+    // Optional: demo collections (lock down for prod)
+    // match /shifts/{id} { allow read, write: if false; }
+    // match /tax_profiles/{id} { allow read, write: if false; }
   }
 }
