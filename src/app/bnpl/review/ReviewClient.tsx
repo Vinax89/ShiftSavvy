@@ -159,7 +159,15 @@ export default function ReviewClient() {
                         <Button size="sm" variant="outline" onClick={()=>setEditing(({[plan.id]:_, ...rest})=>rest)}>Cancel</Button>
                       </>
                     ) : current.status !== 'paid' ? (
-                      <Button size="sm" variant="destructive" onClick={()=>closePlan(plan.id)} disabled={!allLinkedOrPaid}>Close</Button>
+                      <Button
+                        data-testid={`close-${plan.id}`}
+                        size="sm"
+                        variant="destructive"
+                        onClick={()=>closePlan(plan.id)}
+                        disabled={!allLinkedOrPaid}
+                      >
+                        Close
+                      </Button>
                     ) : null}
                   </div>
                 </div>
@@ -213,8 +221,21 @@ export default function ReviewClient() {
                         {!dirty && (
                           <>
                             {s.txnId
-                              ? <Button size="sm" variant="outline" onClick={()=>unlinkTxn(plan.id, i, s.txnId!)}>Unlink</Button>
-                              : <Button size="sm" onClick={()=>setPicker({ open:true, planId: plan.id, schedIdx: i })}>Link</Button>}
+                              ? <Button
+                                  data-testid={`unlink-${plan.id}-${i}`}
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={()=>unlinkTxn(plan.id, i, s.txnId!)}
+                                >
+                                  Unlink
+                                </Button>
+                              : <Button
+                                  data-testid={`link-${plan.id}-${i}`}
+                                  size="sm"
+                                  onClick={()=>setPicker({ open:true, planId: plan.id, schedIdx: i })}
+                                >
+                                  Link
+                                </Button>}
                             <Button size="sm" variant="secondary" onClick={()=>setDraft(plan.id, p=>({ ...p }))}>Edit</Button>
                           </>
                         )}
