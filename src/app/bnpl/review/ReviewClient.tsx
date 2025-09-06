@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
+import { auth } from '@/lib/firebase.client'
 
 type Sched = { dueDate: string; amountCents: number; txnId?: string; paidCents?: number }
 type Plan = {
@@ -20,21 +21,25 @@ type Plan = {
   notes?: string
 }
 
+async function getAuthHeaders(): Promise<HeadersInit> {
+    const user = auth.currentUser
+    if (!user) return {}
+    const token = await user.getIdToken()
+    return { Authorization: `Bearer ${token}` }
+}
+
+
 export default function ReviewClient() {
   const uid = useUid()
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState<{[k:string]: Plan}>({}) // planId -> draft
 
-  const headers = useMemo<HeadersInit>(() => {
-    // Dev: allow X-UID when testing in Studio; production should send Bearer ID token.
-    return process.env.NODE_ENV !== 'production' && uid ? { 'x-uid': uid } : {}
-  }, [uid])
-
   async function fetchRollups() {
     if (!uid) return
     setLoading(true)
     try {
+      const headers = await getAuthHeaders();
       const r = await fetch('/api/bnpl/rollups', { headers })
       const j = await r.json()
       if (!j.ok) throw new Error(j.error || 'Failed to load rollups')
@@ -57,6 +62,7 @@ export default function ReviewClient() {
     const prev = plans
     setPlans(plans.map(p => p.id===planId ? draft : p))
     try {
+      const headers = await getAuthHeaders();
       const r = await fetch('/api/bnpl/plan', {
         method: 'POST',
         headers: { 'content-type':'application/json', ...headers },
@@ -82,6 +88,7 @@ export default function ReviewClient() {
       schedule: p.schedule.map((s, i) => i===schedIdx ? { ...s, txnId } : s)
     }) : p))
     try {
+       const headers = await getAuthHeaders();
       const r = await fetch('/api/bnpl/link', {
         method: 'POST',
         headers: { 'content-type':'application/json', ...headers },
@@ -103,6 +110,7 @@ export default function ReviewClient() {
       schedule: p.schedule.map((s, i) => i===schedIdx ? { ...s, txnId: undefined } : s)
     }) : p))
     try {
+       const headers = await getAuthHeaders();
       const r = await fetch('/api/bnpl/unlink', {
         method: 'POST',
         headers: { 'content-type':'application/json', ...headers },
@@ -122,6 +130,7 @@ export default function ReviewClient() {
     const prev = plans
     setPlans(plans.map(p => p.id===planId ? { ...p, status:'paid' } : p))
     try {
+       const headers = await getAuthHeaders();
       const r = await fetch('/api/bnpl/close', {
         method: 'POST',
         headers: { 'content-type':'application/json', ...headers },
