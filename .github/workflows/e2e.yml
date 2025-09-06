@@ -1,0 +1,74 @@
+
+name: E2E (Playwright + Firestore Emulator)
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Install Playwright (browsers + system deps)
+        run: npx playwright install --with-deps
+
+      - name: Install Firebase CLI
+        run: npm i -g firebase-tools
+
+      # Optional: cache Next build artifacts for faster cold starts
+      - name: Cache Next cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            next-${{ runner.os }}-
+
+      # Run the Firestore emulator and the tests in one process.
+      # Playwright will start the Next dev server as defined in playwright.config.ts.
+      - name: Run E2E in emulators
+        env:
+          CI: true
+          FIREBASE_PROJECT_ID: demo-nursefin
+          BNPL_DUAL_WRITE: 'true'
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+          FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+          GCLOUD_PROJECT: demo-nursefin
+          GOOGLE_CLOUD_PROJECT: demo-nursefin
+          # Test user UID used by the e2e spec + seeder
+          E2E_UID: e2e-user-001
+        run: |
+          npx firebase emulators:exec \
+            --project "$FIREBASE_PROJECT_ID" \
+            --only firestore,auth \
+            "npm run e2e"
+
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
