@@ -1,61 +1,46 @@
+
 'use client'
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app'
-import { getAuth, connectAuthEmulator, onAuthStateChanged } from 'firebase/auth'
+
+import { getApps, getApp, initializeApp, type FirebaseApp } from 'firebase/app'
 import {
-  getFirestore,
   initializeFirestore,
-  persistentLocalCache,
   connectFirestoreEmulator,
-  Firestore,
+  type Firestore,
+  persistentLocalCache,
   persistentMultipleTabManager,
-  memoryLocalCache
+  memoryLocalCache,
 } from 'firebase/firestore'
+import { getAuth, type Auth, connectAuthEmulator } from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 }
 
-const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig)
+export const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig)
 
-// --- IMPORTANT: configure cache at init-time (replaces enableIndexedDbPersistence) ---
-// Multi-tab persistent cache by default; fall back to memory-only in environments
-// that block IndexedDB (e.g. Safari Private Browsing).
-function createFirestore(): Firestore {
+export const auth: Auth = getAuth(app)
+
+export const db: Firestore = (() => {
   try {
-    // v10 API uses "localCache".
     return initializeFirestore(app, {
+      // v10: configure cache here (replaces enableIndexedDbPersistence)
       localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager()
+        tabManager: persistentMultipleTabManager(),
       }),
-      // Patched to use long-polling for Cloud Workstations compatibility.
-      experimentalAutoDetectLongPolling: true,
-      useFetchStreams: false,
     })
-  } catch (_e) {
-    // Fallback for IndexedDB not available: memory-only (no offline persistence)
-    return initializeFirestore(app, { 
-        localCache: memoryLocalCache(),
-        experimentalAutoDetectLongPolling: true,
-        useFetchStreams: false,
-     })
+  } catch {
+    // IndexedDB not available (e.g., Safari Private); degrade gracefully.
+    return initializeFirestore(app, { localCache: memoryLocalCache() })
   }
+})()
+
+// Emulators (dev/CI)
+if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true') {
+  const [fh, fp] = (process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080').split(':')
+  connectFirestoreEmulator(db, fh, Number(fp))
+  const [ah, ap] = (process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099').split(':')
+  connectAuthEmulator(auth, `http://${ah}:${ap}`, { disableWarnings: true })
 }
-
-const db = createFirestore();
-
-// Auth (optionally emulator)
-const auth = getAuth(app)
-if (process.env.NEXT_PUBLIC_FIREBASE_EMULATORS === '1') {
-  // Check if running in a browser environment
-  if (typeof window !== 'undefined') {
-    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
-    const host = (process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080').split(':')
-    connectFirestoreEmulator(db, host[0], Number(host[1]))
-  }
-}
-
-export { app, auth, db, onAuthStateChanged }
