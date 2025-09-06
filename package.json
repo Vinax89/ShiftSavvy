@@ -46,11 +46,12 @@
     "embla-carousel-react": "^8.6.0",
     "fast-xml-parser": "^4.4.0",
     "firebase": "^10.12.3",
+    "firebase-admin": "^13.5.0",
     "genkit": "^1.14.1",
     "idb": "^8.0.0",
     "lucide-react": "^0.475.0",
     "nanoid": "^5.0.7",
-    "next": "15.3.5",
+    "next": "^15.5.2",
     "patch-package": "^8.0.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
@@ -64,16 +65,18 @@
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.3",
-    "@types/node": "^20",
+    "@types/node": "^20.19.0",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "firebase-admin": "^13.5.0",
     "genkit-cli": "^1.14.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.19.1",
     "typescript": "^5",
     "vitest": "^3.2.4"
+  },
+  "overrides": {
+    "@types/node": "^20.19.0"
   },
   "packageManager": "npm@10.5.0"
 }
