@@ -27,7 +27,7 @@ export default function CalendarClient(){
   const [from, setFrom] = useState(new Date().toISOString().slice(0,10))
   const [to, setTo] = useState(()=>{ const d = new Date(); d.setDate(d.getDate()+range); return d.toISOString().slice(0,10) })
 
-  const [schedule, setSchedule] = useState<any>({ kind:'biweekly', anchor: '2025-01-03', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone })
+  const [schedule, setSchedule] = useState<any>({ kind:'biweekly', anchor: '2025-01-03', timezone: 'UTC' })
   const [obligations, setObligations] = useState<any[]>([])
   const [res, setRes] = useState<{events: CFEvent[], summary: any} | null>(null)
   
@@ -35,6 +35,11 @@ export default function CalendarClient(){
   const [drawerOpen,setDrawerOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [activeDay,setActiveDay] = useState<any>(null)
+
+  useEffect(() => {
+    // Set timezone on client-side to avoid hydration mismatch
+    setSchedule((prev: any) => ({ ...prev, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }));
+  }, []);
 
   useEffect(() => {
     const newTo = new Date(from);
