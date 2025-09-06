@@ -1,3 +1,4 @@
+
 'use client'
 import dynamic from 'next/dynamic'
 
@@ -32,3 +33,5 @@ export function BalanceChart({ data, fmtUSD }: { data: any[]; fmtUSD: (n:number)
     </div>
   )
 }
+
+    

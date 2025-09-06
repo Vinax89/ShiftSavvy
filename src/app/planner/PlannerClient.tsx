@@ -86,7 +86,7 @@ export default function PlannerClient() {
   const baseSummary = useMemo(() => baseline ? summarizeRun(baseline) : null, [baseline])
   const saved = useMemo(() => (summary && baseSummary) ? (baseSummary.totalInterestCents - summary.totalInterestCents) : 0, [summary, baseSummary])
 
-  const balanceSeries = useMemo(() => {
+  const mergedSeries = useMemo(() => {
     if (!run || !baseline) return []
     const planBalances = run.map(m => ({ ym: m.ym, plan: m.line.reduce((a: number, L: any)=> a + L.endBalanceCents, 0) }))
     const baselineBalances = baseline.map(m => ({ ym: m.ym, baseline: m.line.reduce((a: number, L: any)=> a + L.endBalanceCents, 0) }))
@@ -167,7 +167,7 @@ export default function PlannerClient() {
             <div><span className="text-muted-foreground">Total Interest (Min-Only):</span> <span className="font-medium">{fmtUSD(baseSummary.totalInterestCents)}</span></div>
             <div><span className="text-muted-foreground">Interest Saved:</span> <span className="font-medium text-green-700 dark:text-green-400">{fmtUSD(saved)}</span></div>
           </div>
-          <BalanceChart data={balanceSeries} fmtUSD={fmtUSD} />
+          {mergedSeries.length ? <BalanceChart data={mergedSeries} fmtUSD={fmtUSD} /> : null}
           <div><Button onClick={onSave}>Save Run</Button></div>
           </CardContent>
         </Card>
@@ -177,7 +177,7 @@ export default function PlannerClient() {
         <Tabs defaultValue="schedule">
           <TabsList>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
-            <TabsTrigger value="accounts">Payoff Dates</TabsTrigger>
+            <TabsTrigger value="accounts">Accounts</TabsTrigger>
             <TabsTrigger value="bnpl">BNPL</TabsTrigger>
           </TabsList>
           <TabsContent value="schedule">
@@ -229,3 +229,5 @@ export default function PlannerClient() {
     </SidebarProvider>
   )
 }
+
+    
