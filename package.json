@@ -16,7 +16,9 @@
     "bnpl:reconcile": "node scripts/reconcile-bnpl.mjs",
     "bnpl:reconcile:dry": "node scripts/reconcile-bnpl.mjs --dry",
     "bnpl:recompute": "node scripts/recompute-bnpl-rollups.mjs",
-    "alerts:backfill": "node scripts/alerts-backfill.mjs"
+    "alerts:backfill": "node scripts/alerts-backfill.mjs",
+    "bnpl:check": "node scripts/check-bnpl-dualwrite.mjs",
+    "bnpl:check:fix": "node scripts/check-bnpl-dualwrite.mjs --fix"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",
