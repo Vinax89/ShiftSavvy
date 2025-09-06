@@ -38,31 +38,31 @@ export default function AppSidebar() {
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton href="/dashboard" isActive={pathname === '/dashboard'}>
+            <SidebarMenuButton href="/dashboard" isActive={pathname.startsWith('/dashboard')}>
               <Home />
               Dashboard
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton href="/paycheck" isActive={pathname === '/paycheck'}>
+            <SidebarMenuButton href="/paycheck" isActive={pathname.startsWith('/paycheck')}>
               <Wallet />
               Paycheck
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton href="/calendar" isActive={pathname === '/calendar'}>
+            <SidebarMenuButton href="/calendar" isActive={pathname.startsWith('/calendar')}>
               <Calendar />
               Cashflow
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton href="/planner" isActive={pathname === '/planner'}>
+            <SidebarMenuButton href="/planner" isActive={pathname.startsWith('/planner')}>
               <LineChart />
               Debt Planner
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton href="/transactions" isActive={pathname === '/transactions'}>
+            <SidebarMenuButton href="/transactions" isActive={pathname.startsWith('/transactions')}>
               <FileText />
               Transactions
             </SidebarMenuButton>

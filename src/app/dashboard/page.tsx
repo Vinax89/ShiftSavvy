@@ -1,8 +1,7 @@
+// src/app/dashboard/page.tsx  (SERVER ONLY)
+import 'server-only'
+import DashboardClient from '../DashboardClient';
 
-'use server';
-import 'server-only';
-import DashboardPage from '../DashboardPage';
-
-export default async function Page() {
-  return <DashboardPage />;
+export default function Page() {
+  return <DashboardClient />
 }
