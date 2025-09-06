@@ -1,9 +1,6 @@
 
 import { ZPaySchedule } from './pay-schedule.schema'
-import dayjs from 'dayjs'
-import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'
-
-dayjs.extend(isSameOrBefore)
+import { dayjs } from '@/lib/dayjs'
 
 
 export function previousPayday(ps: unknown, paydayYMD: string): string {
