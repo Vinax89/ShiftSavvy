@@ -5,7 +5,7 @@ import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firesto
 import { db } from '@/lib/firebase.client'
 import { buildForecast, type CFEvent } from '@/domain/cashflow'
 import { toDailySeries } from '@/domain/cashflow.series'
-import { AppHeader } from '@/components/app-header'
+import AppHeader from '@/components/app-header'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import AppSidebar from '@/components/app-sidebar'
 import { SidebarInset } from '@/components/ui/sidebar'
