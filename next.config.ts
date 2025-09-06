@@ -1,26 +1,30 @@
 import type { NextConfig } from 'next'
 
-/**
- * Next.js 15 config tuned for Firebase Studio + Turbopack.
- * - allowedDevOrigins stops _next/* CORS blocks from Cloud Workstations
- * - turbopack:{} enables TP config (and ensures no legacy webpack setup fights it)
- * - DO NOT add a "webpack(config){...}" hook; Turbopack ignores it & Next warns.
- */
+const ORIGIN = process.env.STUDIO_ORIGIN || ''
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
-  // ✅ Allow dev assets to be loaded by Firebase Studio Workstations origin.
-  allowedDevOrigins: [
-    process.env.STUDIO_ORIGIN || '',
-    'http://localhost:9002',
-    'http://0.0.0.0:9002',
-  ].filter(Boolean),
+  // Allow Firebase Studio’s reverse-proxy to fetch dev assets.
+  allowedDevOrigins: [ORIGIN, 'http://localhost:9002', 'http://0.0.0.0:9002'].filter(Boolean),
 
-  // ✅ Turbopack configuration bucket (even if empty) — keeps TP happy.
-  turbopack: {},
-
-  experimental: {
-    typedRoutes: true,
+  // Extra CORS for dev assets when proxied through Studio.
+  async headers() {
+    if (process.env.NODE_ENV !== 'development') return []
+    return [
+      {
+        source: '/_next/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: ORIGIN || '*' },
+          { key: 'Access-Control-Allow-Credentials', value: 'true' },
+        ],
+      },
+    ]
   },
+
+  // Keep Turbopack happy: do not set unsupported experimental flags or a custom webpack() hook.
+  turbopack: {},
+  experimental: {},
 }
+
 export default nextConfig
