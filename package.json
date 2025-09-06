@@ -7,6 +7,7 @@
     "clean": "rimraf .next .turbo node_modules/.cache .genkit && echo cleaned",
     "test": "vitest run",
     "test:rules": "vitest run tests/rules --reporter=dot",
+    "test:coverage": "vitest run --coverage",
     "emulators": "firebase emulators:start --only firestore,storage,auth",
     "import:csv": "tsx -r dotenv/config src/tools/import/cli.ts",
     "import:generic": "node src/tools/import-generic-csv.mjs",
