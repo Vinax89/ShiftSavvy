@@ -1,4 +1,5 @@
 'use server';
+
 import 'server-only';
 
 // Hard guard: only ever run on the server (prevents accidental client bundling)
@@ -8,7 +9,7 @@ if (typeof window !== 'undefined') {
 
 import { z } from 'zod';
 import type { SavingsTargetGuidanceInput, SavingsTargetGuidanceOutput } from '@/ai/flows/savings-target-guidance.server';
-import type { OvertimeAlertOutput } from '@/ai/flows/overtime-alert.server';
+import type { OvertimeAlertInput, OvertimeAlertOutput } from '@/ai/flows/overtime-alert.server';
 import { savingsTargetGuidance } from '@/ai/flows/savings-target-guidance.server';
 import { runOvertimeAlert } from '@/ai/flows/overtime-alert.server';
 
@@ -42,7 +43,7 @@ export async function getSavingsGuidance(formData: FormData): Promise<SavingsTar
 }
 
 export async function getOvertimeAlert(): Promise<OvertimeAlertOutput> {
-    const input = {
+    const input: OvertimeAlertInput = {
         userName: 'Demo User',
         workSchedule: 'Worked 40 hours this week. Shifts on Mon, Tue, Wed, Fri, Sat.',
         shiftDetails: 'Considering picking up an 8-hour shift on Sunday.'
