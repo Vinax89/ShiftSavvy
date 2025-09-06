@@ -53,6 +53,14 @@ const nextConfig: NextConfig = {
     ...(dynamicOrigin ? [dynamicOrigin] : []),
   ],
   experimental: {},
+  turbopack: {
+    resolveAlias: {
+      'handlebars': require.resolve('./src/stubs/empty.js'),
+      'dotprompt': require.resolve('./src/stubs/empty.js'),
+      'genkit': require.resolve('./src/stubs/empty.js'),
+      '@genkit-ai/core': require.resolve('./src/stubs/empty.js'),
+    },
+  },
 };
 
 export default nextConfig;
