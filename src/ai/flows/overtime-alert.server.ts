@@ -2,9 +2,9 @@
 import 'server-only';
 
 /**
- * @fileOverview Checks the user's work schedule and warns them if accepting a shift could lead to overwork and burnout.
+ * @fileOverview Defines the types for the overtime alert flow.
+ * The implementation has been moved to src/lib/actions.server.ts.
  *
- * - overtimeAlert - A function that checks the schedule and provides a personalized warning.
  * - OvertimeAlertInput - The input type for the overtimeAlert function.
  * - OvertimeAlertOutput - The return type for the overtimeAlert function.
  */
@@ -22,36 +22,3 @@ const OvertimeAlertOutputSchema = z.object({
   alertMessage: z.string().describe('A personalized and gentle warning message about potential overwork and burnout.'),
 });
 export type OvertimeAlertOutput = z.infer<typeof OvertimeAlertOutputSchema>;
-
-export async function overtimeAlert(input: OvertimeAlertInput): Promise<OvertimeAlertOutput> {
-    const { ai } = await import('@/ai/genkit.server');
-    const prompt = ai.definePrompt({
-        name: 'overtimeAlertPrompt',
-        input: {schema: OvertimeAlertInputSchema},
-        output: {schema: OvertimeAlertOutputSchema},
-        prompt: `You are a helpful assistant designed to gently warn users about potential overwork and burnout.
-
-        Given the user's work schedule and the details of a potential new shift, provide a personalized warning message.
-        Be empathetic and understanding, and focus on the user's well-being.
-
-        User Name: {{{userName}}}
-        Work Schedule: {{{workSchedule}}}
-        Shift Details: {{{shiftDetails}}}
-
-        Craft a message that is both informative and supportive, encouraging the user to prioritize their health and avoid overexertion.`,
-    });
-
-    const overtimeAlertFlow = ai.defineFlow(
-    {
-        name: 'overtimeAlertFlow',
-        inputSchema: OvertimeAlertInputSchema,
-        outputSchema: OvertimeAlertOutputSchema,
-    },
-    async input => {
-        const {output} = await prompt(input);
-        return output!;
-    }
-    );
-
-    return overtimeAlertFlow(input);
-}
