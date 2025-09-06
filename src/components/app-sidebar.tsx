@@ -8,7 +8,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/icons';
-import { Home, Calendar, Wallet, Landmark, Target, Settings, CircleUser, PiggyBank } from 'lucide-react';
+import { Home, Calendar, Wallet, Landmark, Target, Settings, CircleUser, PiggyBank, Briefcase } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 export default function AppSidebar() {
@@ -26,6 +26,12 @@ export default function AppSidebar() {
             <SidebarMenuButton href="/" >
               <Home />
               <span>Dashboard</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton href="/calendar">
+              <Briefcase />
+              <span>Calendar</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
