@@ -24,23 +24,28 @@ export async function getSavingsGuidance(formData: FormData): Promise<SavingsTar
         throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
     }
 
+    const { savingsTargetGuidance } = await import('@/ai/flows/savings-target-guidance.server');
+
     const input: SavingsTargetGuidanceInput = {
         ...validatedFields.data,
         futureShifts: '3 shifts scheduled next week: Mon 8h, Wed 8h, Fri 12h. Est. total pay $850.' // Mock data
     };
-
-    const { savingsTargetGuidance } = await import('@/ai/flows/savings-target-guidance.server');
+    
     return savingsTargetGuidance(input);
 }
 
 
 export async function getOvertimeAlert(): Promise<OvertimeAlertOutput> {
+    const { overtimeAlert } = await import('@/ai/flows/overtime-alert.server');
     const input: OvertimeAlertInput = {
         userName: 'Demo User',
         workSchedule: 'Worked 40 hours this week. Shifts on Mon, Tue, Wed, Fri, Sat.',
         shiftDetails: 'Considering picking up an 8-hour shift on Sunday.'
     };
-    
-    const { overtimeAlert } = await import('@/ai/flows/overtime-alert.server');
     return await overtimeAlert(input);
+}
+
+export async function runOvertimeAlertAction(input: OvertimeAlertInput): Promise<OvertimeAlertOutput> {
+  const { overtimeAlert } = await import('@/ai/flows/overtime-alert.server');
+  return overtimeAlert(input);
 }
