@@ -3,7 +3,7 @@ import type { NextConfig } from 'next'
 
 const base: NextConfig = {
   turbopack: {}, // keep this so dev never warns
-  allowedDevOrigins: ['localhost','127.0.0.1','0.0.0.0','*.cloudworkstations.dev'],
+  allowedDevOrigins: ['localhost','127.0.0.1','0.0.0.0','*.cloudworkstations.dev','6000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev'],
 }
 
 // Only wrap in production builds to avoid Webpack-in-dev warnings
