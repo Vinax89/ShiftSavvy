@@ -18,6 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useMounted } from "@/hooks/use-mounted"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -354,11 +355,13 @@ const SidebarHeader = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div">
 >(({ className, ...props }, ref) => {
+  const mounted = useMounted()
   return (
     <div
+      suppressHydrationWarning
       ref={ref}
       data-sidebar="header"
-      className={cn("flex flex-col gap-2 p-2", className)}
+      className={cn("flex flex-col gap-2 p-2", !mounted && "pointer-events-none select-none", className)}
       {...props}
     />
   )
