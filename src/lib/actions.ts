@@ -1,7 +1,7 @@
 'use server';
 
-import { savingsTargetGuidance, type SavingsTargetGuidanceInput, type SavingsTargetGuidanceOutput } from '@/ai/flows/savings-target-guidance';
-import { overtimeAlert, type OvertimeAlertInput, type OvertimeAlertOutput } from '@/ai/flows/overtime-alert';
+import { savingsTargetGuidance, type SavingsTargetGuidanceInput, type SavingsTargetGuidanceOutput } from '@/ai/flows/savings-target-guidance.server';
+import { overtimeAlert, type OvertimeAlertInput, type OvertimeAlertOutput } from '@/ai/flows/overtime-alert.server';
 import { z } from 'zod';
 
 const savingsSchema = z.object({
