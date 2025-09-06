@@ -1,19 +1,18 @@
 'use client';
-import { auth } from '@/lib/firebase.client';
+import { getAuth } from 'firebase/auth'
 
 type Opts = RequestInit & { requireAuth?: boolean };
 
 export async function apiFetch<T = any>(path: string, opts: Opts = {}): Promise<T> {
   const headers: Record<string, string> = { 'content-type': 'application/json', ...(opts.headers as any) };
   
+  const auth = getAuth();
   const user = auth.currentUser;
+  
   if (user) {
     const token = await user.getIdToken().catch(() => null);
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-    } else if (process.env.NODE_ENV !== 'production') {
-      // Fallback for development environments (like Studio/emulators) where a token might not be available
-      headers['X-UID'] = user.uid;
     }
   }
 

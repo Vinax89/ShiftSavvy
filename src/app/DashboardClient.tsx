@@ -10,6 +10,7 @@ import { OvertimeAlert } from '@/components/dashboard/overtime-alert';
 import type { Shift, Bill } from '@/lib/mock-data';
 import { useState, useEffect } from 'react';
 import AppSidebar from '@/components/app-sidebar';
+import BnplCard from '@/components/bnpl/BnplCard';
 
 export default function DashboardClient() {
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -128,6 +129,7 @@ export default function DashboardClient() {
                       <OvertimeAlert />
                   </CardContent>
               </Card>
+               <BnplCard />
           </div>
           </main>
       </div>
