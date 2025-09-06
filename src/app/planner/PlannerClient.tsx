@@ -10,7 +10,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { type Debt, type BNPL, type Plan } from '@/domain/debt-planner.schema'
 import { simulatePayoff } from '@/domain/debt-planner'
 import { simulateMinOnly, summarizeRun } from '@/domain/debt-planner.baseline'
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import { findMonthlyMatches, findBnplMatch } from './reconcile'
 import * as Sentry from '@sentry/nextjs'
 import { SidebarProvider } from '@/components/ui/sidebar'
@@ -20,6 +19,7 @@ import AppHeader from '@/components/app-header'
 import { nanoid } from 'nanoid'
 import { toast } from '@/components/ui/toast'
 import BnplTimeline from './BnplTimeline'
+import { BalanceChart } from './Chart'
 
 
 const fmtUSD = (cents: number) => (cents/100).toLocaleString(undefined, { style: 'currency', currency: 'USD' })
@@ -87,10 +87,24 @@ export default function PlannerClient() {
   const saved = useMemo(() => (summary && baseSummary) ? (baseSummary.totalInterestCents - summary.totalInterestCents) : 0, [summary, baseSummary])
 
   const balanceSeries = useMemo(() => {
-    if (!run) return []
-    // compute total end-of-month balances per ym
-    return run.map(m => ({ ym: m.ym, balance: m.line.reduce((a: number, L: any)=> a + L.endBalanceCents, 0) }))
-  }, [run])
+    if (!run || !baseline) return []
+    const planBalances = run.map(m => ({ ym: m.ym, plan: m.line.reduce((a: number, L: any)=> a + L.endBalanceCents, 0) }))
+    const baselineBalances = baseline.map(m => ({ ym: m.ym, baseline: m.line.reduce((a: number, L: any)=> a + L.endBalanceCents, 0) }))
+    
+    const combined: Record<string, {ym: string, plan?: number, baseline?: number}> = {}
+    planBalances.forEach(p => {
+      combined[p.ym] = { ym: p.ym, plan: p.plan }
+    });
+    baselineBalances.forEach(b => {
+      if (combined[b.ym]) {
+        combined[b.ym].baseline = b.baseline
+      } else {
+        combined[b.ym] = { ym: b.ym, baseline: b.baseline }
+      }
+    })
+
+    return Object.values(combined).sort((a,b) => a.ym.localeCompare(b.ym))
+  }, [run, baseline])
 
   async function onSave() {
     if (!run || !summary) return
@@ -153,18 +167,7 @@ export default function PlannerClient() {
             <div><span className="text-muted-foreground">Total Interest (Min-Only):</span> <span className="font-medium">{fmtUSD(baseSummary.totalInterestCents)}</span></div>
             <div><span className="text-muted-foreground">Interest Saved:</span> <span className="font-medium text-green-700 dark:text-green-400">{fmtUSD(saved)}</span></div>
           </div>
-          <div className="h-64">
-            <ResponsiveContainer>
-              <LineChart data={balanceSeries}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="ym" minTickGap={24} fontSize={12} />
-                <YAxis tickFormatter={(v)=>fmtUSD(v)} fontSize={12} />
-                <Tooltip formatter={(v:any)=>fmtUSD(Number(v))} labelFormatter={(l)=>l} />
-                <Legend />
-                <Line type="monotone" dataKey="balance" name="Remaining Debt Balance" dot={false} stroke="hsl(var(--primary))" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <BalanceChart data={balanceSeries} fmtUSD={fmtUSD} />
           <div><Button onClick={onSave}>Save Run</Button></div>
           </CardContent>
         </Card>
