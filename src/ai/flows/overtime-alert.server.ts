@@ -1,4 +1,5 @@
 'use server';
+import 'server-only';
 
 /**
  * @fileOverview Checks the user's work schedule and warns them if accepting a shift could lead to overwork and burnout.

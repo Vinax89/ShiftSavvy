@@ -1,4 +1,5 @@
 'use server';
+import 'server-only';
 
 import { z } from 'zod';
 import type { SavingsTargetGuidanceInput, SavingsTargetGuidanceOutput } from '@/ai/flows/savings-target-guidance.server';

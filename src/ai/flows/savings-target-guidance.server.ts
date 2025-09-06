@@ -1,4 +1,5 @@
 'use server';
+import 'server-only';
 
 /**
  * @fileOverview A savings target guidance AI agent.
