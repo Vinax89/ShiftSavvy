@@ -35,10 +35,12 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/icons';
+import { usePathname } from 'next/navigation';
 
 export default function DashboardPage() {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
+  const pathname = usePathname();
 
   useEffect(() => {
     // Safely generate dynamic, date-based mock data on the client
@@ -112,31 +114,31 @@ export default function DashboardPage() {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton href="/" isActive>
+              <SidebarMenuButton href="/dashboard" isActive={pathname === '/dashboard'}>
                 <Home />
                 Dashboard
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton href="/paycheck">
+              <SidebarMenuButton href="/paycheck" isActive={pathname === '/paycheck'}>
                 <Wallet />
                 Paycheck
               </SidebarMenuButton>
             </SidebarMenuItem>
              <SidebarMenuItem>
-              <SidebarMenuButton href="/calendar">
+              <SidebarMenuButton href="/calendar" isActive={pathname === '/calendar'}>
                 <Calendar />
                 Cashflow
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton href="/planner">
+              <SidebarMenuButton href="/planner" isActive={pathname === '/planner'}>
                 <LineChart />
                 Debt Planner
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton href="/transactions">
+              <SidebarMenuButton href="/transactions" isActive={pathname === '/transactions'}>
                 <FileText />
                 Transactions
               </SidebarMenuButton>

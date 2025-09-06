@@ -1,8 +1,7 @@
+// src/app/page.tsx  (SERVER ONLY)
+import 'server-only'
+import { redirect } from 'next/navigation'
 
-'use server';
-import 'server-only';
-import DashboardPage from './DashboardPage';
-
-export default async function Page() {
-  return <DashboardPage />;
+export default function Page() {
+  redirect('/dashboard') // or '/calendar' — pick your real landing route
 }

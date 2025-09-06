@@ -38,7 +38,7 @@ export default function AppSidebar() {
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton href="/" isActive={pathname === '/'}>
+            <SidebarMenuButton href="/dashboard" isActive={pathname === '/dashboard'}>
               <Home />
               Dashboard
             </SidebarMenuButton>
