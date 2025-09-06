@@ -1,10 +1,14 @@
-export async function sha256Base64(input: string): Promise<string> {
-  if (typeof window !== 'undefined' && window.crypto?.subtle) {
-    const enc = new TextEncoder().encode(input)
-    const buf = await window.crypto.subtle.digest('SHA-256', enc)
-    return btoa(String.fromCharCode(...new Uint8Array(buf)))
-  } else {
+// Compatibility shim for existing imports.
+// Avoids statically importing 'node:crypto' so client bundles stay clean.
+// Prefer using explicit '@/domain/hash-server' or '@/domain/hash-client' in new code.
+export async function sha256(input: string) {
+  if (typeof window === 'undefined') {
     const { createHash } = await import('node:crypto')
-    return createHash('sha256').update(input).digest('base64')
+    return createHash('sha256').update(input).digest('hex')
   }
+  const enc = new TextEncoder().encode(input)
+  const buf = await crypto.subtle.digest('SHA-256', enc)
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
 }

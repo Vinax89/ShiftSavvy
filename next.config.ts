@@ -1,24 +1,22 @@
 import type { NextConfig } from 'next'
+import withBundleAnalyzer from '@next/bundle-analyzer'
 
-// Set this in .env.local, no trailing slash.
-// STUDIO_ORIGIN=https://9000-firebase-studio-xxxxxxxxxxxxxxxx.cluster-xxxxxxxxxxxxxxxx.dev
-const studioOrigin = process.env.STUDIO_ORIGIN?.trim();
-
+// Canvas/Studio-friendly config:
+//  - allowedDevOrigins accepts rotating Firebase Studio preview hosts via regex
+//  - memory cache in dev avoids overlay-fs rename races on packfile renames
 const nextConfig: NextConfig = {
-  /**
-   * Allow Firebase Studio (running on a different origin) to fetch /_next/* in dev.
-   * This fixes: "Blocked cross-origin request ... configure allowedDevOrigins".
-   */
-  allowedDevOrigins: studioOrigin ? [studioOrigin] : [],
-
-  /**
-   * If you ever add a webpack() customizer, guard it so Turbopack owns dev:
-   */
-  // webpack: (config) => {
-  //   if ((process as any).env.__TURBOPACK) return config; // no-op in dev
-  //   // ...prod-only webpack tweaks (if any)
-  //   return config;
-  // },
+  // @ts-expect-error Next types allow (string | RegExp)[]
+  allowedDevOrigins: [/^https:\/\/\d{4}-firebase-studio-.*\.cloudworkstations\.dev$/],
+  webpack: (config, { dev }) => {
+    if (dev) {
+      // @ts-ignore — webpack types not exposed by Next
+      config.cache = { type: 'memory' }
+    }
+    config.ignoreWarnings ||= []
+    config.ignoreWarnings.push(/Critical dependency: the request of a dependency is an expression/)
+    return config
+  }
 }
 
-export default nextConfig;
+const analyzer = withBundleAnalyzer({ enabled: process.env.ANALYZE === 'true' })
+export default analyzer(nextConfig)
