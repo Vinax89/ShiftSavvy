@@ -1,12 +1,14 @@
 'use client'
-import { initializeApp, getApps, getApp } from 'firebase/app'
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app'
 import { getAuth, connectAuthEmulator, onAuthStateChanged } from 'firebase/auth'
 import {
   getFirestore,
   initializeFirestore,
   persistentLocalCache,
   connectFirestoreEmulator,
-  enableMultiTabIndexedDbPersistence,
+  Firestore,
+  persistentMultipleTabManager,
+  memoryLocalCache
 } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -17,32 +19,33 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 }
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
+const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig)
 
-// Firestore + offline cache
-// Patched to use long-polling for Cloud Workstations compatibility.
-let db;
-if (typeof window !== 'undefined') {
+// --- IMPORTANT: configure cache at init-time (replaces enableIndexedDbPersistence) ---
+// Multi-tab persistent cache by default; fall back to memory-only in environments
+// that block IndexedDB (e.g. Safari Private Browsing).
+function createFirestore(): Firestore {
   try {
-    db = initializeFirestore(app, {
+    // v10 API uses "localCache".
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+      }),
+      // Patched to use long-polling for Cloud Workstations compatibility.
       experimentalAutoDetectLongPolling: true,
       useFetchStreams: false,
-      localCache: persistentLocalCache(),
-    });
-    enableMultiTabIndexedDbPersistence(db).catch((err) => {
-        if (err.code === 'failed-precondition') {
-            console.warn('Multiple tabs open, persistence can only be enabled in one. Support for multiple tabs remains.');
-        } else if (err.code === 'unimplemented') {
-            console.warn('The current browser does not support all of the features required to enable persistence.');
-        }
-    });
-  } catch (e) {
-    db = getFirestore(app);
+    })
+  } catch (_e) {
+    // Fallback for IndexedDB not available: memory-only (no offline persistence)
+    return initializeFirestore(app, { 
+        localCache: memoryLocalCache(),
+        experimentalAutoDetectLongPolling: true,
+        useFetchStreams: false,
+     })
   }
-} else {
-  db = getFirestore(app);
 }
 
+const db = createFirestore();
 
 // Auth (optionally emulator)
 const auth = getAuth(app)
@@ -50,7 +53,8 @@ if (process.env.NEXT_PUBLIC_FIREBASE_EMULATORS === '1') {
   // Check if running in a browser environment
   if (typeof window !== 'undefined') {
     connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
-    connectFirestoreEmulator(db, '127.0.0.1', 8080)
+    const host = (process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080').split(':')
+    connectFirestoreEmulator(db, host[0], Number(host[1]))
   }
 }
 
