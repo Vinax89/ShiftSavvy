@@ -1,56 +1,76 @@
+
 'use client'
 import { useEffect, useState } from 'react'
-import { collection, getDocs, query, where, writeBatch, doc } from 'firebase/firestore'
-import { db } from '@/lib/firebase.client'
+import { useUid } from '@/hooks/useUid'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { toast } from 'sonner'
 
-export default function ReviewClient(){
-  const uid = 'demo-uid'
-  const [cand, setCand] = useState<any[]>([])
-  
-  async function loadCandidates() {
-      // Candidate: transactions with provider tokens but without bnplPlanId
-      const snap = await getDocs(query(collection(db,'transactions'), where('userId','==',uid)))
-      const rows = snap.docs.map(d=>({ id:d.id, ...d.data() }))
-      const rx = /(affirm|afterpay|klarna|paypal\s*(pay in 4|installments)|shop\s*pay)/i
-      setCand(rows.filter(r => rx.test(r.description) && !r.bnplPlanId && r.notes !== 'bnpl-ignore'))
-  }
-  
-  useEffect(()=>{ 
-    loadCandidates()
-  },[])
+type Plan = {
+  id: string
+  merchant: string
+  provider: string
+  status: string
+  schedule: { dueDate: string; amountCents: number; txnId?: string; paidCents?: number }[]
+}
 
-  async function ignore(ids:string[]){
-    const batch = writeBatch(db)
-    ids.forEach(id => batch.update(doc(db,'transactions',id), { notes: 'bnpl-ignore' }))
-    await batch.commit()
-    await loadCandidates() // Refresh list
+export default function ReviewClient() {
+  const uid = useUid()
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [loading, setLoading] = useState(false)
+
+  async function refresh() {
+    if (!uid) return
+    setLoading(true)
+    try {
+      const r = await fetch('/api/bnpl/rollups', { headers: devHeaders(uid) })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.error || 'Failed')
+      setPlans(j.plans || [])
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally { setLoading(false) }
   }
+
+  useEffect(() => { refresh() }, [uid])
+
+  if (!uid) return <div className="p-4 text-sm opacity-80">Sign in to review BNPL plans.</div>
 
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-4">
       <Card>
-          <CardHeader>
-              <CardTitle>Review BNPL</CardTitle>
-              <CardDescription>Review transactions that might be part of a Buy Now, Pay Later plan but were not automatically detected.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {cand.length===0 ? <div className='text-muted-foreground p-4 text-center'>No BNPL candidates to review.</div> : cand.map(c => (
-              <Card key={c.id} className="p-3 flex items-center justify-between mb-2">
-                <div className="text-sm">
-                  <div className="font-medium">{c.description}</div>
-                  <div className="text-muted-foreground">{c.postedDate} • {c.accountId}</div>
+        <CardHeader>
+          <CardTitle>Review BNPL</CardTitle>
+          <CardDescription>Link/unlink payments, edit schedules, and close plans.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button disabled={loading} onClick={refresh}>Refresh</Button>
+          <div className="space-y-2">
+            {plans.map(p => (
+              <div key={p.id} className="border rounded p-3">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium">{p.merchant} <Badge variant="secondary">{p.provider}</Badge></div>
+                  <Badge>{p.status}</Badge>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{ (c.amountCents / 100).toLocaleString('en-US', {style: 'currency', currency: 'USD'})}</Badge>
-                  <Button variant="outline" size="sm" onClick={()=> ignore([c.id])}>Ignore</Button>
-                </div>
-              </Card>
+                <ul className="mt-2 text-sm">
+                  {p.schedule?.map((s, i) => (
+                    <li key={i} className="flex items-center justify-between">
+                      <span>{s.dueDate}</span>
+                      <span>${(s.amountCents/100).toFixed(2)} {s.txnId ? <Badge>linked</Badge> : <Badge variant="outline">pending</Badge>}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </CardContent>
+          </div>
+        </CardContent>
       </Card>
     </div>
   )
+}
+
+// Dev-only: allow X-UID header without Auth token
+function devHeaders(uid: string): HeadersInit {
+  return process.env.NODE_ENV !== 'production' ? { 'x-uid': uid } : {}
 }
