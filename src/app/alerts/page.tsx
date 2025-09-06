@@ -1,10 +1,10 @@
+'use client';
 import AlertsClient from './AlertsClient'
 import AppSidebar from '@/components/app-sidebar'
+import { useUid } from '@/hooks/useUid'
 
-export default async function AlertsPage() {
-  // In a real app, you would get the user ID from a server-side session.
-  // For this demo, we'll pass a static ID.
-  const uid = 'demo-uid';
+export default function AlertsPage() {
+  const uid = useUid();
 
   return (
     <>
@@ -14,7 +14,7 @@ export default async function AlertsPage() {
           <h1 className="text-lg font-semibold">Alerts</h1>
         </header>
         <div className="p-4 space-y-6">
-          <AlertsClient uid={uid} />
+          {uid ? <AlertsClient uid={uid} /> : <p>Please sign in to see your alerts.</p>}
         </div>
       </main>
     </>

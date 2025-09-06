@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { getAuth } from 'firebase/auth'
 import AppSidebar from '@/components/app-sidebar'
+import { useUid } from '@/hooks/useUid'
 
 const PAGE_SIZE = 50
 const fmtUSD = (cents: number) => (cents/100).toLocaleString(undefined, { style: 'currency', currency: 'USD' })
@@ -89,9 +90,10 @@ export default function TransactionsClient() {
   const [account, setAccount] = useState('')
   const [from, setFrom] = useState('') // YYYY-MM-DD
   const [to, setTo] = useState('')   // YYYY-MM-DD
-  const uid = 'demo-uid' // TODO: real auth
+  const uid = useUid()
 
   const loadPage = useCallback(async (reset=false) => {
+    if (!uid) return;
     setLoading(true)
     try {
       let qy: any = query(
@@ -117,7 +119,14 @@ export default function TransactionsClient() {
 
 
   // initial + filter changes
-  useEffect(() => { loadPage(true) }, [account, from, to])
+  useEffect(() => { 
+    if (uid) loadPage(true) 
+    else {
+        setItems([]);
+        setHasMore(true);
+        setLastDoc(null);
+    }
+  }, [account, from, to, uid])
 
   const accounts = useMemo(() => {
     const s = new Set<string>()
@@ -132,7 +141,7 @@ export default function TransactionsClient() {
   }, [items, qtext])
   
   const onHit = useCallback(() => { if (!loading && hasMore) loadPage(false) }, [loading, hasMore, loadPage])
-  const sentinelRef = useInfinite(onHit, true)
+  const sentinelRef = useInfinite(onHit, !!uid)
 
 
   return (
@@ -143,6 +152,8 @@ export default function TransactionsClient() {
             <h1 className="text-lg font-semibold">Transactions</h1>
         </header>
       <div className="max-w-3xl mx-auto p-4 space-y-4">
+        {!uid && <Card><div className="p-4 text-center text-muted-foreground">Please sign in to view transactions.</div></Card>}
+        {uid && <>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
           <div className="col-span-2">
             <Input placeholder="Search description…" value={qtext} onChange={e=>setQ(e.target.value)} />
@@ -179,7 +190,8 @@ export default function TransactionsClient() {
         
         <div ref={sentinelRef} className="h-8" />
         {loading && <p className="text-center">Loading...</p>}
-        {!hasMore && <p className="text-center text-muted-foreground">End of transactions.</p>}
+        {!hasMore && items.length > 0 && <p className="text-center text-muted-foreground">End of transactions.</p>}
+        {items.length === 0 && !loading && <p className="text-center text-muted-foreground">No transactions found.</p>}
 
 
         <div className="flex items-center justify-between pt-2">
@@ -187,6 +199,7 @@ export default function TransactionsClient() {
           <Button variant="secondary" onClick={() => exportServer({ account, from, to })} disabled={!items.length}>Export CSV (Server)</Button>
 
         </div>
+        </>}
       </div>
     </main>
     </>

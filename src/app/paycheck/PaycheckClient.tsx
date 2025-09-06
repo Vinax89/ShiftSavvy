@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { buildEstimateDoc, saveEstimate, listEstimates } from '@/data/paycheck-estimates'
 import { fmtUSD } from '@/lib/money'
 import { registerBackgroundSync } from '@/lib/queue'
+import { useUid } from '@/hooks/useUid'
 
 
 export default function PaycheckClient() {
@@ -27,9 +28,13 @@ export default function PaycheckClient() {
     setCurrentDate(Date.now());
   }, []);
 
-  const uid = 'demo-uid' // replace with real auth
+  const uid = useUid() 
 
   useEffect(() => {
+    if (!uid) {
+        setLoading(false);
+        return;
+    };
     registerBackgroundSync();
     (async () => {
       setLoading(true);
@@ -64,10 +69,10 @@ export default function PaycheckClient() {
       }
       setLoading(false);
     })();
-  }, []);
+  }, [uid]);
 
   async function onSave() {
-    if (!res) return;
+    if (!res || !uid) return;
     try {
       const doc = await buildEstimateDoc({ userId: uid, shifts, policy, tax, ytd, periodStart: '2025-09-01', periodEnd: '2025-09-14' });
       await saveEstimate(uid, doc);
@@ -86,7 +91,8 @@ export default function PaycheckClient() {
         <header className="h-12 flex items-center px-4 border-b mb-4">
             <h1 className="text-lg font-semibold">Paycheck</h1>
         </header>
-        <Card>
+        {!uid && <Card><CardContent className="p-4 text-center text-muted-foreground">Please sign in to view your paycheck estimates.</CardContent></Card>}
+        {uid && <Card>
           <CardHeader>
             <CardTitle className="font-headline">Paycheck Estimate</CardTitle>
             <CardDescription>A projection of your net pay based on your shifts.</CardDescription>
@@ -122,8 +128,8 @@ export default function PaycheckClient() {
               </div>
             )}
           </CardContent>
-        </Card>
-        {recent.length > 0 && (
+        </Card>}
+        {uid && recent.length > 0 && (
           <Card className="mt-4">
               <CardHeader>
                   <CardTitle className="font-headline">Recent Estimates</CardTitle>

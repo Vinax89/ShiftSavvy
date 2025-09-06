@@ -17,6 +17,7 @@ import { nanoid } from 'nanoid'
 import { toast } from '@/components/ui/toast'
 import BnplTimeline from './BnplTimeline'
 import dynamic from 'next/dynamic'
+import { useUid } from '@/hooks/useUid'
 
 const BalanceChart = dynamic(() => import('./Chart').then(m => m.BalanceChart), { ssr: false });
 
@@ -24,7 +25,7 @@ const BalanceChart = dynamic(() => import('./Chart').then(m => m.BalanceChart), 
 const fmtUSD = (cents: number) => (cents/100).toLocaleString(undefined, { style: 'currency', currency: 'USD' })
 
 export default function PlannerClient() {
-  const uid = 'demo-uid' // TODO: auth
+  const uid = useUid()
   const [strategy, setStrategy] = useState<'avalanche'|'snowball'>('avalanche')
   const [startDate, setStartDate] = useState<string | null>(null)
   const [extra, setExtra] = useState<number>(40000)
@@ -42,7 +43,12 @@ export default function PlannerClient() {
     setStartDate(new Date().toISOString().slice(0, 10));
   }, []);
 
-  useEffect(() => { (async ()=>{
+  useEffect(() => { 
+    if (!uid) {
+        setLoading(false);
+        return;
+    };
+    (async ()=>{
     const ds = (await getDocs(query(collection(db,'debts_accounts'), where('userId','==',uid)))).docs.map(d=>({ id:d.id, ...d.data() } as Debt))
     setDebts(ds)
     const obs = (await getDocs(query(collection(db,'obligations'), where('userId','==',uid)))).docs.map(d=>({ id:d.id, ...d.data() }))
@@ -79,7 +85,7 @@ export default function PlannerClient() {
       const plan: Plan = { strategy, startDate, extraDebtBudgetCents: extra, assumptions: { interestModel:'monthly', dayOfMonth: 15 } }
       // @ts-ignore
       const r = simulatePayoff({ debts, bnpl, plan, overrides })
-      // @tsignore
+      // @ts-ignore
       const b = simulateMinOnly({ debts, bnpl, plan, overrides })
       setRun(r); setBaseline(b)
     } finally { setLoading(false) }
@@ -126,7 +132,7 @@ export default function PlannerClient() {
   }, [run, baseline])
 
   async function onSave() {
-    if (!run || !summary || !startDate) return
+    if (!run || !summary || !startDate || !uid) return
     Sentry.addBreadcrumb({ category:'planner', message:'saveRun', level:'info' });
     const planRef = doc(collection(db,'payoff_plans'), nanoid())
     const runRef = doc(collection(db,'payoff_plans_runs'), nanoid())
@@ -150,6 +156,8 @@ export default function PlannerClient() {
         <header className="h-12 flex items-center px-4 border-b mb-4">
             <h1 className="text-lg font-semibold">Debt Planner</h1>
         </header>
+        {!uid && <Card><CardContent className="p-4 text-center text-muted-foreground">Please sign in to use the Debt Planner.</CardContent></Card>}
+        {uid && <>
         <Card>
             <CardHeader>
               <CardTitle className="font-headline">Debt Payoff Planner</CardTitle>
@@ -246,6 +254,7 @@ export default function PlannerClient() {
            </TabsContent>
         </Tabs>
       )}
+      </>}
       </main>
     </>
   )
