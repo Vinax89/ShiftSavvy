@@ -3,8 +3,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import * as admin from "firebase-admin";
-import * as nodemailer from "nodemailer";
-// import * as sg from "@sendgrid/mail"; // optional alternative
+import * as sg from "@sendgrid/mail";
 
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -252,18 +251,15 @@ async function runForUser(uid: string) {
 }
 
 async function sendEmail(to: string, subject: string, alerts: AlertDoc[]) {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM || "alerts@shiftsavvy.local";
-
-  if (!(host && user && pass)) {
-    console.log("SMTP not configured; skipping email.");
+  const sgKey = process.env.SENDGRID_API_KEY;
+  const from = process.env.SENDGRID_FROM || "alerts@shiftsavvy.local";
+  
+  if (!sgKey) {
+    console.log("SENDGRID_API_KEY not configured; skipping email.");
     return;
   }
+  sg.setApiKey(sgKey);
 
-  const transporter = nodemailer.createTransport({ host, port, auth: { user, pass } });
   const html = `
     <div style="font-family:system-ui">
       <h2>ShiftSavvy — New Alerts</h2>
@@ -273,11 +269,11 @@ async function sendEmail(to: string, subject: string, alerts: AlertDoc[]) {
       <p>You can disable emails in Settings.</p>
     </div>
   `;
-  await transporter.sendMail({ from, to, subject, html });
+  await sg.send({ to, from, subject, html });
 }
 
 // ---- Schedules & Endpoints ----
-const secrets = ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "SMTP_FROM", "SPEC3_TZ"];
+const secrets = ["SENDGRID_API_KEY", "SENDGRID_FROM", "SPEC3_TZ"];
 
 // Run daily at 8:30AM in your default TZ (override with env TZ)
 export const alertsDaily = onSchedule({
