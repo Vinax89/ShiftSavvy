@@ -23,7 +23,7 @@ export default function AppSidebar() {
       <SidebarContent className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton href="/" isActive>
+            <SidebarMenuButton href="/" >
               <Home />
               <span>Dashboard</span>
             </SidebarMenuButton>
@@ -41,7 +41,7 @@ export default function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
            <SidebarMenuItem>
-            <SidebarMenuButton href="/planner">
+            <SidebarMenuButton href="/planner" isActive>
               <PiggyBank />
               <span>Debt Planner</span>
             </SidebarMenuButton>

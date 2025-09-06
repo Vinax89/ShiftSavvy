@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { collection, getDocs, query, where, writeBatch } from 'firebase/firestore'
+import { collection, getDocs, query, where, writeBatch, doc } from 'firebase/firestore'
 import { db } from '@/lib/firebase.client'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import AppSidebar from '@/components/app-sidebar'
@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCap
 import { type Debt, type BNPL } from '@/domain/debt-planner.schema'
 import { simulatePayoff, type MonthSchedule } from '@/domain/debt-planner'
 import { fmtUSD } from '@/lib/money'
-import { add, format } from 'date-fns'
+import { format } from 'date-fns'
 import { nanoid } from 'nanoid'
 
 

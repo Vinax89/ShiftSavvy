@@ -7,7 +7,7 @@ service cloud.firestore {
     function ownerOnCreate() { return isAuthed() && request.resource.data.userId == request.auth.uid; }
     function ownerOnResource() { return isAuthed() && resource.data.userId == request.auth.uid; }
 
-    function isoDate(s) { return s is string && s.matches('^\\d{4}-\\d{2}-\\d{2}$'); }
+    function isoDate(s) { return s is string && s.matches('^\d{4}-\d{2}-\d{2}$'); }
     function isNonNegInt(n) { return n is int && n >= 0; }
     function inRange(n, lo, hi) { return n is int && n >= lo && n <= hi; }
     function isBps(n) { return inRange(n, 0, 100000); } // 0–1000%
@@ -109,7 +109,7 @@ service cloud.firestore {
     // ---- paycheck_estimates (lock to schemaVersion:2 + immutable fields) ----
     function validateEstimateCreate(d) {
       return d.schemaVersion == 2 &&
-             d.keys().hasAll(['userId','periodStart','periodEnd','inputsHash','summary','result','schemaVersion', 'createdAt']) &&
+             d.keys().hasAll(['userId', 'createdAt', 'periodStart','periodEnd','inputsHash','summary','result','schemaVersion']) &&
              isoDate(d.periodStart) && isoDate(d.periodEnd) &&
              d.inputsHash is string && d.summary is map && d.result is map;
     }
@@ -124,7 +124,7 @@ service cloud.firestore {
       allow update: if ownerOnResource() && validateEstimateUpdate(request.resource.data);
       allow delete: if ownerOnResource();
     }
-    
+
     // ---- Debt Payoff Planner ----
     match /payoff_plans/{id} {
       allow read: if ownerOnResource();
@@ -140,13 +140,14 @@ service cloud.firestore {
     }
 
     match /payoff_plans_runs/{id}/schedule/{ym} {
-      allow read: if isAuthed() && get(/databases/$(database)/documents/payoff_plans_runs/$(id)).data.userId == request.auth.uid;
-      allow create: if isAuthed() && request.resource.data.userId == request.auth.uid && request.resource.data.schemaVersion == 2;
+      allow read: if isAuthed() && request.auth.uid == resource.data.userId;
+      allow create: if isAuthed() && request.auth.uid == request.resource.data.userId && request.resource.data.schemaVersion == 2;
       allow update, delete: if false; // append-only
     }
 
-
     // ---- default deny (no other top-level collections) ----
-    match /{document=**} { allow read, write: if false; }
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }
