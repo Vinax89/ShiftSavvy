@@ -8,13 +8,13 @@ const DUAL_WRITE = process.env.BNPL_DUAL_WRITE !== 'false' // default true
 
 export type Plan = {
   id: string;
-  provider: 'klarna'|'afterpay'|'affirm'|'paypal'|'unknown';
-  merchant: string;
-  principalCents: number;
-  aprPct: number|null;
+  provider?: 'klarna'|'afterpay'|'affirm'|'paypal'|'unknown';
+  merchant?: string;
+  principalCents?: number;
+  aprPct?: number|null;
   schedule: { dueDate: string; amountCents: number; txnId?: string; paidCents?: number }[];
-  status: 'active'|'paid'|'delinquent'|'cancelled';
-  source: 'auto'|'manual'|'mixed';
+  status?: 'active'|'paid'|'delinquent'|'cancelled';
+  source?: 'auto'|'manual'|'mixed';
   notes?: string;
   createdAt?: any;
   updatedAt?: any;
@@ -57,25 +57,27 @@ export async function closePlan(uid: string, planId: string) {
   await logEvent(uid, { type: 'closePlan', planId, at: FieldValue.serverTimestamp() });
 }
 
-export async function rollups(uid: string) {
-  const snap = await db.collection(PLANS_PATH(uid)).get();
-  let outstandingCents = 0;
-  let nextDue: string | null = null;
-  const plans: any[] = [];
-  snap.forEach(d => {
-    const p = d.data() as Plan;
-    plans.push({ id: d.id, ...p });
-    // naive outstanding: sum(schedule.amount - paidCents)
-    const remain = (p.schedule || []).reduce((acc, s) => acc + Math.max(0, (s.amountCents || 0) - (s.paidCents || 0)), 0);
-    outstandingCents += remain;
+export function computeRollups(plans: Plan[]) {
+  let outstandingCents = 0
+  let nextDue: string | null = null
+  for (const p of plans) {
     for (const s of p.schedule || []) {
-      const isPending = (s.paidCents || 0) < (s.amountCents || 0);
-      if (isPending) {
-        if (!nextDue || s.dueDate < nextDue) nextDue = s.dueDate;
+      const remain = Math.max(0, (s.amountCents||0) - (s.paidCents||0))
+      if (remain > 0) {
+        outstandingCents += remain
+        if (!nextDue || s.dueDate < nextDue) nextDue = s.dueDate
       }
     }
-  });
-  return { plansCount: plans.length, outstandingCents, nextDue, plans };
+  }
+  return { outstandingCents, nextDue, plansCount: plans.length }
+}
+
+
+export async function rollups(uid: string) {
+  const snap = await db.collection(PLANS_PATH(uid)).get();
+  const plans: Plan[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+  const summary = computeRollups(plans);
+  return { ...summary, plans };
 }
 
 async function logEvent(uid: string, ev: any) {
