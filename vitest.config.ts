@@ -8,6 +8,17 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     include: ['**/*.{test,spec}.?(c|m)[jt]s?(x)'],
+    coverage: {
+      reportsDirectory: 'coverage',
+      reporter: ['text', 'lcov'],
+      include: ['src/**/*.{ts,tsx}', 'functions/src/**/*.ts'],
+      exclude: [
+        '**/*.test.*', '**/*.spec.*', '**/__tests__/**',
+        'src/ai/dev.ts', 'src/stubs/**', 'src/tools/**',
+        '**/*.config.ts', '**/*.config.js',
+        '.next/**', 'dist/**', 'functions/dist/**', 'coverage/**', 'node_modules/**'
+      ]
+    }
   },
   resolve: {
     alias: {
