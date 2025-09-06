@@ -74,15 +74,15 @@ export default function CalendarGrid({ days, bufferCents, onDayClick }:{ days: {
                   isToday(d.date)?'ring-2 ring-primary ring-offset-[-1px] z-10':'',
                   'hover:shadow-md hover:z-20'
                 )}
-                aria-label={`${d.date}, balance ${fmt(d.balanceCents)}`}
+                aria-label={`${d.date}, balance ${fmtUSD(d.balanceCents)}`}
               >
                 <div className="flex items-start justify-between">
                     <span className={cn('font-semibold', isToday(d.date) ? 'text-primary' : 'text-muted-foreground')}>{d.date.slice(8).replace(/^0/, '')}</span>
-                    <span className={cn("font-semibold", d.balanceCents < 0 ? 'text-destructive' : 'text-foreground')}>{fmt(d.balanceCents)}</span>
+                    <span className={cn("font-semibold", d.balanceCents < 0 ? 'text-destructive' : 'text-foreground')}>{fmtUSD(d.balanceCents)}</span>
                 </div>
                 <div className="space-y-0.5 pt-1 text-foreground">
-                  {d.pay ? <div className="flex items-center gap-1.5 text-green-700 dark:text-green-400"><Wallet className="w-3.5 h-3.5" /> +{fmt(d.pay)}</div> : null}
-                  {d.bills ? <div className="flex items-center gap-1.5 text-red-700 dark:text-red-400"><Receipt className="w-3.5 h-3.5" /> {fmt(d.bills)}</div> : null}
+                  {d.pay ? <div className="flex items-center gap-1.5 text-green-700 dark:text-green-400"><Wallet className="w-3.5 h-3.5" /> +{fmtUSD(d.pay)}</div> : null}
+                  {d.bills ? <div className="flex items-center gap-1.5 text-red-700 dark:text-red-400"><Receipt className="w-3.5 h-3.5" /> {fmtUSD(d.bills)}</div> : null}
                 </div>
               </button>
             ) : <div key={`empty-${i}`} className={cn(isWeekend(days[i]?.date) ? 'bg-muted/30' : 'bg-card')}>{d}</div>

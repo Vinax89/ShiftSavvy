@@ -1,7 +1,7 @@
 
 'use client'
 import { TrendingUp, TriangleAlert, Filter, Settings, FileDown } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
 export default function CalendarHeader({

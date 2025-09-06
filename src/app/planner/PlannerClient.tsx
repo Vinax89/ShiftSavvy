@@ -11,7 +11,7 @@ import { type Debt, type BNPL, type Plan } from '@/domain/debt-planner.schema'
 import { simulatePayoff } from '@/domain/debt-planner'
 import { simulateMinOnly, summarizeRun } from '@/domain/debt-planner.baseline'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
-import { findMonthlyMatches } from './reconcile'
+import { findMonthlyMatches, findBnplMatch } from './reconcile'
 import * as Sentry from '@sentry/nextjs'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import AppSidebar from '@/components/app-sidebar'
@@ -19,6 +19,8 @@ import { SidebarInset } from '@/components/ui/sidebar'
 import AppHeader from '@/components/app-header'
 import { nanoid } from 'nanoid'
 import { useToast } from '@/hooks/use-toast'
+import BnplTimeline from './BnplTimeline'
+
 
 const fmtUSD = (cents: number) => (cents/100).toLocaleString(undefined, { style: 'currency', currency: 'USD' })
 
@@ -31,6 +33,8 @@ export default function PlannerClient() {
   const [loading, setLoading] = useState(false)
   const [debts, setDebts] = useState<Debt[]>([])
   const [bnpl, setBnpl] = useState<BNPL[]>([])
+  const [bnplObs, setBnplObs] = useState<any[]>([])
+  const [bnplMatches, setBnplMatches] = useState<Record<string,string[]>>({})
   const [overrides, setOverrides] = useState<Record<string, number>>({})
   const [run, setRun] = useState<any[] | null>(null)
   const [baseline, setBaseline] = useState<any[] | null>(null)
@@ -39,10 +43,29 @@ export default function PlannerClient() {
     const ds = (await getDocs(query(collection(db,'debts_accounts'), where('userId','==',uid)))).docs.map(d=>({ id:d.id, ...d.data() } as Debt))
     setDebts(ds)
     const obs = (await getDocs(query(collection(db,'obligations'), where('userId','==',uid)))).docs.map(d=>({ id:d.id, ...d.data() }))
+    const bnplObsData = obs.filter(o=>o.kind ==='bnpl');
+    setBnplObs(bnplObsData);
     // @ts-ignore
-    setBnpl(obs.filter(o=>o.kind==='bnpl').map(o=>({ id:o.id, name:o.name, installmentCents:o.installmentCents ?? o.amountCents, remainingInstallments:o.remainingInstallments ?? 0 })))
+    setBnpl(bnplObsData.map(o=>({ id:o.id, name:o.name, installmentCents:o.installmentCents ?? o.amountCents, remainingInstallments:o.remainingInstallments ?? 0 })))
     const ov = (await getDocs(query(collection(db,'payoff_overrides'), where('userId','==',uid)))).docs.map(d => d.data())
     setOverrides(Object.fromEntries(ov.map(o => [o.ym, o.overrideExtraDebtBudgetCents])))
+
+    const mm: Record<string,string[]> = {}
+    for (const o of bnplObsData) {
+      const seq = Array.from({ length: Math.min(6, o.remainingInstallments||0) }, (_,i)=>{
+        const d = new Date(o.nextDueDate);
+        const step = o.cadence === 'biweekly' ? 14 : 30;
+        d.setDate(d.getDate() + i * step);
+        return d.toISOString().slice(0,10)
+      })
+      for (const ymd of seq) {
+        const ym = ymd.slice(0,7)
+        const found = await findBnplMatch({ userId: uid, planId: o.id, ym })
+        if (found.length) mm[`${o.id}|${ymd}`] = found.map(x=>x.id)
+      }
+    }
+    setBnplMatches(mm)
+
   })() }, [uid])
 
   async function recompute() {
@@ -153,6 +176,7 @@ export default function PlannerClient() {
           <TabsList>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
             <TabsTrigger value="accounts">Payoff Dates</TabsTrigger>
+            <TabsTrigger value="bnpl">BNPL</TabsTrigger>
           </TabsList>
           <TabsContent value="schedule">
             <Card className="p-4 overflow-x-auto">
@@ -193,6 +217,9 @@ export default function PlannerClient() {
               </table>
             </Card>
           </TabsContent>
+           <TabsContent value="bnpl">
+              <BnplTimeline items={bnplObs} matches={bnplMatches} userId={uid} />
+           </TabsContent>
         </Tabs>
       )}
         </main>
