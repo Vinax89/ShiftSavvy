@@ -106,7 +106,7 @@ export default function PlannerClient() {
       batch.set(schedRef, { userId: uid, ym: m.ym, line: m.line, bnpl: m.bnpl, schemaVersion: 2 })
     }
     await batch.commit();
-    toast({ title:'Plan saved', description:`${summary.months} months, ${fmtUSD(summary.totalInterestCents)} interest` });
+    toast.success('Plan saved', { description:`${summary.months} months, ${fmtUSD(summary.totalInterestCents)} interest` });
   }
 
   return (

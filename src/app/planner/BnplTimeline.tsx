@@ -12,7 +12,7 @@ export default function BnplTimeline({ items, matches, userId }: { items: BnplOb
   const { toast } = useToast()
 
   if (!items.length) return (
-    <Card className="p-4">
+    <Card>
       <CardHeader>
         <CardTitle>BNPL Timeline</CardTitle>
       </CardHeader>
@@ -23,7 +23,7 @@ export default function BnplTimeline({ items, matches, userId }: { items: BnplOb
   )
   
   return (
-    <Card className="p-4 space-y-3">
+    <Card>
       <CardHeader>
         <CardTitle>BNPL Timeline</CardTitle>
       </CardHeader>
@@ -45,7 +45,7 @@ export default function BnplTimeline({ items, matches, userId }: { items: BnplOb
                   const ms = matches[key] || []
                   const matched = ms.length > 0
                   return (
-                    <div key={key} className={`rounded-lg border p-3 text-sm flex flex-col gap-2 justify-between ${matched ?'bg-green-50/50 border-green-200/80' : 'bg-card'}`}>
+                    <div key={key} className={`rounded-lg border p-3 text-sm flex flex-col gap-2 justify-between ${matched ?'bg-green-50/50 dark:bg-green-900/20 border-green-200/80 dark:border-green-800/50' : 'bg-card'}`}>
                       <div className="flex items-center justify-between">
                         <div className="font-medium text-muted-foreground">{s.date}</div>
                         <div className={`font-semibold ${matched?'text-green-700 dark:text-green-400':'text-card-foreground'}`}>{fmtUSD(s.amountCents)}</div>
@@ -55,7 +55,7 @@ export default function BnplTimeline({ items, matches, userId }: { items: BnplOb
                         {!matched && (
                           <Button size="sm" variant="ghost" className="h-7" onClick={async ()=>{
                             await resolveBnplInstallment({ userId, planId: o.id, dateYMD: s.date })
-                            toast({ title: 'Marked as resolved', description: `${o.name} • ${s.date}` })
+                            toast.success('Marked as resolved', { description: `${o.name} • ${s.date}` })
                           }}>Resolve</Button>
                         )}
                       </div>

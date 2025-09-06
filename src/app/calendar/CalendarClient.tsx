@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase.client'
-import { buildForecast, type CFEvent } from '@/domain/cashflow'
+import { buildForecast, enumeratePaydays, type CFEvent } from '@/domain/cashflow'
 import { toDailySeries } from '@/domain/cashflow.series'
 import AppHeader from '@/components/app-header'
 import { SidebarProvider } from '@/components/ui/sidebar'
@@ -49,18 +49,19 @@ export default function CalendarClient(){
   })() },[])
 
   async function recompute() {
-    const paycheckProvider = {
-      getNetForDate: async (d: string) => {
-        return getNetForPayday({ userId: uid, paydayYMD: d, schedule });
-      },
-    };
-    
     try {
-      const forecastResult = await buildForecast({ schedule, obligations, paycheckProvider, from, to, bufferCents: buffer });
+      const paydays = enumeratePaydays(schedule, from, to) 
+      const nets: Record<string, number> = {}
+      for (const d of paydays) {
+        nets[d] = await getNetForPayday({ userId: uid, paydayYMD: d, schedule })
+      }
+      const paycheckProvider = { netForDate: (d:string)=> nets[d] ?? 0 }
+      
+      const forecastResult = buildForecast({ schedule, obligations, paycheckProvider, from, to, bufferCents: buffer });
       setRes(forecastResult);
-      toast({ title: 'Forecast updated', description: `${forecastResult.events.length} events across ${range} days` });
+      toast.success('Forecast updated', { description: `${forecastResult.events.length} events across ${range} days` });
     } catch (err) {
-       toast({ title: 'Something went wrong', description: String(err), variant: 'destructive' });
+       toast.error('Something went wrong', { description: String(err) });
     }
   }
 
@@ -72,7 +73,7 @@ export default function CalendarClient(){
   async function applyPlannerOverride(ym: string, neededDeltaCents: number) {
     const id = `${uid}_${ym}`
     await setDoc(doc(db, 'payoff_overrides', id), { userId: uid, ym, overrideExtraDebtBudgetCents: -Math.abs(neededDeltaCents), reason: 'shortfall', schemaVersion: 2 })
-    toast({ title: 'Override saved', description: `Applied for ${ym}` })
+    toast.success('Override saved', { description: `Applied for ${ym}` })
   }
 
   function onDayClick(d:any){ setActiveDay(d); setDrawerOpen(true) }
@@ -80,7 +81,7 @@ export default function CalendarClient(){
   function handleExport() {
     if (res) {
       exportForecastCSV(res.events)
-      toast({ title: 'CSV exported', description: 'Your forecast CSV has been downloaded.' })
+      toast.info('CSV exported', { description: 'Your forecast CSV has been downloaded.' })
     }
   }
 
@@ -102,7 +103,7 @@ export default function CalendarClient(){
         {res && (
           <>
             {warning && (
-              <div className="p-3 rounded-lg bg-red-50/50 dark:bg-red-900/20 border border-destructive/20 text-sm">
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm">
                 <p className='font-medium text-destructive'>Forecast dips below zero.</p>
                 <p className='text-muted-foreground mt-1'>Consider reducing extra debt budget for the affected months to ensure you can cover your bills.</p>
                 <div className="pt-2 flex gap-2 flex-wrap">
