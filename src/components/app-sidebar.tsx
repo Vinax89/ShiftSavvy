@@ -5,11 +5,11 @@ import {
   SidebarFooter,
   SidebarMenu,
   SidebarMenuItem,
-  SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/icons';
 import { Home, Calendar, Wallet, Landmark, Target, Settings, CircleUser, PiggyBank, Briefcase, Bot } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { SidebarMenuButton } from '@/components/nav/SidebarMenuButton';
 
 export default function AppSidebar() {
   return (
