@@ -3,13 +3,12 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { expandBnpl, type BnplOb } from '@/domain/bnpl.timeline'
 import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from '@/components/ui/toast'
 import { resolveBnplInstallment } from './bnpl.resolve'
 
 const fmtUSD = (c:number)=> (c/100).toLocaleString(undefined,{style:'currency',currency:'USD'})
 
 export default function BnplTimeline({ items, matches, userId }: { items: BnplOb[], matches: Record<string, string[]>, userId:string }){
-  const { toast } = useToast()
 
   if (!items.length) return (
     <Card>

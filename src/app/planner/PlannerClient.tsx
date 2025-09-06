@@ -18,7 +18,7 @@ import AppSidebar from '@/components/app-sidebar'
 import { SidebarInset } from '@/components/ui/sidebar'
 import AppHeader from '@/components/app-header'
 import { nanoid } from 'nanoid'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from '@/components/ui/toast'
 import BnplTimeline from './BnplTimeline'
 
 
@@ -26,7 +26,6 @@ const fmtUSD = (cents: number) => (cents/100).toLocaleString(undefined, { style:
 
 export default function PlannerClient() {
   const uid = 'demo-uid' // TODO: auth
-  const { toast } = useToast()
   const [strategy, setStrategy] = useState<'avalanche'|'snowball'>('avalanche')
   const [startDate, setStartDate] = useState<string>(new Date().toISOString().slice(0,10))
   const [extra, setExtra] = useState<number>(40000)

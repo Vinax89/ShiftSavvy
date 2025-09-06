@@ -12,7 +12,7 @@ import { SidebarInset } from '@/components/ui/sidebar'
 import { getNetForPayday } from '@/lib/netpay'
 import CalendarGrid from './CalendarGrid'
 import { exportForecastCSV } from './export'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from '@/components/ui/toast'
 import CalendarHeader from './CalendarHeader'
 import DayDetails from './DayDetails'
 import SettingsDrawer from './SettingsDrawer'
@@ -21,7 +21,6 @@ const fmtUSD = (c:number)=> (c/100).toLocaleString(undefined,{ style:'currency',
 
 export default function CalendarClient(){
   const uid = 'demo-uid'
-  const { toast } = useToast()
   
   const [buffer, setBuffer] = useState(50000)
   const [range, setRange] = useState(90)
