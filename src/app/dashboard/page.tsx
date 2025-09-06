@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 const DashboardClient = dynamic(() => import('../DashboardClient'), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full w-full items-center justify-center p-4 text-sm text-muted-foreground animate-pulse">
+    <div className="flex h-full w-full animate-pulse items-center justify-center p-4 text-sm text-muted-foreground">
       Loading dashboard…
     </div>
   ),
