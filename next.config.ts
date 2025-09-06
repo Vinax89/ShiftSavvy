@@ -4,6 +4,7 @@ import type {NextConfig} from 'next';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  transpilePackages: ['@domain'], // add any local packages used by web
   images: {
     remotePatterns: [
       {
@@ -42,6 +43,8 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
     'https://*.cloudworkstations.dev',
     'https://*.firebase.studio',
+    'localhost', 
+    '0.0.0.0',
   ],
   experimental: {},
 };
