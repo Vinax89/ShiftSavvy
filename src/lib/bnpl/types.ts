@@ -1,50 +1,74 @@
-
 // src/lib/bnpl/types.ts
-export type Cadence = 'biweekly' | 'monthly';
-export type ContractStatus = 'active' | 'paid' | 'late';
-export type InstallmentStatus = 'scheduled' | 'paid' | 'refunded';
+import type { Timestamp } from 'firebase-admin/firestore';
+
+// --- Firestore Document Schemas ---
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  accountId: string;
+  amount: number; // in cents, negative for outflow
+  date: Timestamp;
+  merchant: string;
+  note?: string;
+  raw?: Record<string, any>;
+}
+
+export type BnplContractState = 'OPEN' | 'ACTIVE' | 'PAID' | 'LATE' | 'DEFAULTED' | 'CANCELED';
+export type BnplScheduleFrequency = 'weekly' | 'biweekly' | 'monthly';
 
 export interface BnplContract {
+  id: string;
   userId: string;
-  accountId: string;
-  provider: string; // e.g., 'Afterpay', 'Klarna'
-  merchant?: string; // best-effort reconstruction
-  principal: number; // original principal after refunds
-  feeTotal: number;  // sum of fees we can attribute
-  startDate: string; // ISO date
-  cadence: Cadence;
-  expectedInstallments: 4 | 6 | 12 | number;
-  installmentAmount: number; // typical amount
-  paidCount: number; // number of installments marked paid
-  nextDueDate?: string; // ISO date
-  status: ContractStatus;
-  endDate?: string; // calculated when fully paid
-  sourceTxIds: string[]; // tx ids used to infer
-  createdAt?: any; // Firestore server timestamp
-  updatedAt?: any;
+  provider: string;
+  merchant: string;
+  principal: number; // in cents
+  currency: string;
+  startDate: Timestamp;
+  scheduleCount: number;
+  scheduleFrequency: BnplScheduleFrequency;
+  state: BnplContractState;
+  nextDueDate: Timestamp | null;
+  paidInstallments: number;
+  totalInstallments: number;
+  outstanding: number; // in cents
+  lastReconciledAt: Timestamp | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
+
+export type BnplInstallmentStatus = 'UPCOMING' | 'DUE' | 'PAID' | 'PARTIAL' | 'OVERDUE';
 
 export interface BnplInstallment {
+  id: string;
   contractId: string;
-  txId?: string; // present when paid
-  amount: number;
-  dueDate: string; // ISO date (scheduled) OR same as postedAt for already-paid
-  postedAt?: string; // ISO
-  status: InstallmentStatus;
+  dueDate: Timestamp;
+  amountDue: number; // in cents
+  amountPaid: number; // in cents
+  status: BnplInstallmentStatus;
+  paidAt: Timestamp | null;
 }
 
-export interface TxnBnplAnnotation {
+export interface BnplLink {
+  id: string;
   contractId: string;
-  role: 'principal' | 'installment' | 'fee';
+  txnId: string;
+  installmentId: string;
+  amountApplied: number; // in cents, positive
+  confidence: number; // 0..1
+  matchedAt: Timestamp;
 }
 
+
+// --- Interfaces for Reconstruction Logic ---
+
+// Simplified transaction shape for processing
 export interface RawTransaction {
-  id: string; // txId
+  id: string;
   userId: string;
   accountId: string;
-  amount: number; // negative for debit or positive? we normalize to +debit
-  postedAt: string; // ISO
+  amountCents: number; // negative for debit/outflow
+  postedDate: string; // YYYY-MM-DD
   description?: string;
   merchant?: string;
-  mcc?: string | number;
 }
