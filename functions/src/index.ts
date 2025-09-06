@@ -7,6 +7,7 @@ import { sendError } from './errors'
 import { health } from './routes/health'
 import { createEstimate } from './routes/estimates'
 import { api_transactions_exportCsv } from './routes/transactions.export'
+import { alertsDaily, alertsRunNow } from './alerts'
 
 if (!getApps().length) initializeApp({ credential: applicationDefault() })
 
@@ -19,3 +20,5 @@ export const api_estimates_create = onRequest({ region: REGION }, (req, res) =>
 )
 
 export { api_transactions_exportCsv };
+
+export { alertsDaily, alertsRunNow };
