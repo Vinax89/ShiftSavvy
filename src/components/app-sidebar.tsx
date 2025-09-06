@@ -1,84 +1,65 @@
-'use client';
-import {
-  Home,
-  LineChart,
-  Package,
-  Settings,
-  Users,
-  Wallet,
-  Calendar,
-  FileText,
-} from 'lucide-react';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarSeparator,
-  SidebarTrigger,
-} from '@/components/ui/sidebar';
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
+import { Home, Wallet, Calendar, LineChart, FileText, Settings } from 'lucide-react';
 import { Logo } from '@/components/icons';
-import { usePathname } from 'next/navigation';
+
+
+const items = [
+  { href: '/dashboard', label: 'Dashboard', icon: Home },
+  { href: '/paycheck',  label: 'Paycheck', icon: Wallet  },
+  { href: '/calendar',  label: 'Cashflow', icon: Calendar  },
+  { href: '/planner',   label: 'Debt Planner', icon: LineChart },
+  { href: '/transactions', label: 'Transactions', icon: FileText },
+]
 
 export default function AppSidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname()
   return (
-    <Sidebar>
-      <SidebarHeader>
-        <div className="flex items-center gap-2">
+    <aside className="w-64 shrink-0 border-r bg-background flex flex-col">
+      <div className="p-4 h-12 flex items-center border-b">
+        <div className="flex items-center gap-2 font-semibold text-lg">
           <Logo className="size-6 text-primary" />
-          <span className="text-lg font-semibold">ShiftSavvy</span>
+          ShiftSavvy
         </div>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton href="/dashboard" isActive={pathname.startsWith('/dashboard')}>
-              <Home />
-              Dashboard
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton href="/paycheck" isActive={pathname.startsWith('/paycheck')}>
-              <Wallet />
-              Paycheck
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton href="/calendar" isActive={pathname.startsWith('/calendar')}>
-              <Calendar />
-              Cashflow
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton href="/planner" isActive={pathname.startsWith('/planner')}>
-              <LineChart />
-              Debt Planner
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton href="/transactions" isActive={pathname.startsWith('/transactions')}>
-              <FileText />
-              Transactions
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton href="#">
-              <Settings />
-              Settings
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-    </Sidebar>
-  );
+      </div>
+      <nav className="flex-1 px-2 py-4">
+        <ul className="space-y-1">
+          {items.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+            return (
+              <li key={href}>
+                <Link
+                  href={href}
+                  data-active={active || undefined}
+                  className={cn(
+                    'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium',
+                    'hover:bg-accent hover:text-accent-foreground',
+                    active && 'bg-primary text-primary-foreground'
+                  )}
+                >
+                  <Icon className="size-4" />
+                  {label}
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      </nav>
+      <div className="mt-auto p-2">
+          <Link
+            href="#"
+            className={cn(
+                'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium',
+                'hover:bg-accent hover:text-accent-foreground'
+            )}
+            >
+            <Settings className="size-4" />
+            Settings
+            </Link>
+      </div>
+    </aside>
+  )
 }

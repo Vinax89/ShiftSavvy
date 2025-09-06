@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { getAuth } from 'firebase/auth'
+import AppSidebar from '@/components/app-sidebar'
 
 const PAGE_SIZE = 50
 const fmtUSD = (cents: number) => (cents/100).toLocaleString(undefined, { style: 'currency', currency: 'USD' })
@@ -135,51 +136,59 @@ export default function TransactionsClient() {
 
 
   return (
-    <div className="max-w-3xl mx-auto p-4 space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
-        <div className="col-span-2">
-          <Input placeholder="Search description…" value={qtext} onChange={e=>setQ(e.target.value)} />
+    <>
+    <AppSidebar />
+    <main className="flex-1">
+       <header className="h-12 flex items-center px-4 border-b mb-4">
+            <h1 className="text-lg font-semibold">Transactions</h1>
+        </header>
+      <div className="max-w-3xl mx-auto p-4 space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+          <div className="col-span-2">
+            <Input placeholder="Search description…" value={qtext} onChange={e=>setQ(e.target.value)} />
+          </div>
+          <div>
+            <select className="w-full border rounded h-9 px-2 bg-background" value={account} onChange={e=>setAccount(e.target.value)}>
+              <option value="">All accounts</option>
+              {accounts.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+          <div className="text-right text-sm text-muted-foreground">{filtered.length} shown</div>
+          <div className="sm:col-span-2 flex items-center gap-2">
+            <label className="text-xs text-muted-foreground">From</label>
+            <Input type="date" value={from} onChange={e=>setFrom(e.target.value)} />
+            <label className="text-xs text-muted-foreground">To</label>
+            <Input type="date" value={to} onChange={e=>setTo(e.target.value)} />
+          </div>
         </div>
-        <div>
-          <select className="w-full border rounded h-9 px-2 bg-background" value={account} onChange={e=>setAccount(e.target.value)}>
-            <option value="">All accounts</option>
-            {accounts.map(a => <option key={a} value={a}>{a}</option>)}
-          </select>
-        </div>
-        <div className="text-right text-sm text-muted-foreground">{filtered.length} shown</div>
-        <div className="sm:col-span-2 flex items-center gap-2">
-          <label className="text-xs text-muted-foreground">From</label>
-          <Input type="date" value={from} onChange={e=>setFrom(e.target.value)} />
-          <label className="text-xs text-muted-foreground">To</label>
-          <Input type="date" value={to} onChange={e=>setTo(e.target.value)} />
-        </div>
-      </div>
 
-      <div className="space-y-2">
-        {filtered.map(tx => (
-          <Card key={tx.id} className="p-3 flex items-center justify-between">
-            <div className="space-y-0.5">
-              <div className="font-medium flex items-center gap-2">
-                <span>{tx.description}</span>
-                {tx.possibleDuplicateOf && <Badge variant="secondary">possible duplicate</Badge>}
+        <div className="space-y-2">
+          {filtered.map(tx => (
+            <Card key={tx.id} className="p-3 flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="font-medium flex items-center gap-2">
+                  <span>{tx.description}</span>
+                  {tx.possibleDuplicateOf && <Badge variant="secondary">possible duplicate</Badge>}
+                </div>
+                <div className="text-xs text-muted-foreground">{tx.postedDate} • {tx.accountId}</div>
               </div>
-              <div className="text-xs text-muted-foreground">{tx.postedDate} • {tx.accountId}</div>
-            </div>
-            <div className={`font-semibold ${tx.amountCents < 0 ? 'text-destructive' : 'text-primary'}`}>{fmtUSD(tx.amountCents)}</div>
-          </Card>
-        ))}
+              <div className={`font-semibold ${tx.amountCents < 0 ? 'text-destructive' : 'text-primary'}`}>{fmtUSD(tx.amountCents)}</div>
+            </Card>
+          ))}
+        </div>
+        
+        <div ref={sentinelRef} className="h-8" />
+        {loading && <p className="text-center">Loading...</p>}
+        {!hasMore && <p className="text-center text-muted-foreground">End of transactions.</p>}
+
+
+        <div className="flex items-center justify-between pt-2">
+          <Button variant="secondary" onClick={() => exportCsv(filtered, uid)} disabled={!filtered.length}>Export CSV (Client)</Button>
+          <Button variant="secondary" onClick={() => exportServer({ account, from, to })} disabled={!items.length}>Export CSV (Server)</Button>
+
+        </div>
       </div>
-      
-      <div ref={sentinelRef} className="h-8" />
-      {loading && <p className="text-center">Loading...</p>}
-      {!hasMore && <p className="text-center text-muted-foreground">End of transactions.</p>}
-
-
-      <div className="flex items-center justify-between pt-2">
-        <Button variant="secondary" onClick={() => exportCsv(filtered, uid)} disabled={!filtered.length}>Export CSV (Client)</Button>
-        <Button variant="secondary" onClick={() => exportServer({ account, from, to })} disabled={!items.length}>Export CSV (Server)</Button>
-
-      </div>
-    </div>
+    </main>
+    </>
   )
 }

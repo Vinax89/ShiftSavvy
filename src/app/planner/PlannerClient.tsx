@@ -12,10 +12,7 @@ import { simulatePayoff } from '@/domain/debt-planner'
 import { simulateMinOnly, summarizeRun } from '@/domain/debt-planner.baseline'
 import { findMonthlyMatches, findBnplMatch } from './reconcile'
 import * as Sentry from '@sentry/nextjs'
-import { SidebarProvider } from '@/components/ui/sidebar'
 import AppSidebar from '@/components/app-sidebar'
-import { SidebarInset } from '@/components/ui/sidebar'
-import AppHeader from '@/components/app-header'
 import { nanoid } from 'nanoid'
 import { toast } from '@/components/ui/toast'
 import BnplTimeline from './BnplTimeline'
@@ -145,11 +142,12 @@ export default function PlannerClient() {
   if (!startDate) return null; // or skeleton
 
   return (
-    <SidebarProvider>
+    <>
       <AppSidebar />
-      <SidebarInset>
-        <AppHeader />
-        <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <header className="h-12 flex items-center px-4 border-b mb-4">
+            <h1 className="text-lg font-semibold">Debt Planner</h1>
+        </header>
         <Card>
             <CardHeader>
               <CardTitle className="font-headline">Debt Payoff Planner</CardTitle>
@@ -246,8 +244,7 @@ export default function PlannerClient() {
            </TabsContent>
         </Tabs>
       )}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+      </main>
+    </>
   )
 }

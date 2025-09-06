@@ -3,5 +3,5 @@ import 'server-only'
 import { redirect } from 'next/navigation'
 
 export default function Page() {
-  redirect('/dashboard') // or '/calendar' — pick your real landing route
+  redirect('/dashboard')
 }

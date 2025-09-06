@@ -10,9 +10,6 @@ import { OvertimeAlert } from '@/components/dashboard/overtime-alert';
 import type { Shift, Bill } from '@/lib/mock-data';
 import { useState, useEffect } from 'react';
 import AppSidebar from '@/components/app-sidebar';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
-import { TooltipProvider } from '@/components/ui/tooltip';
-
 
 export default function DashboardClient() {
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -79,64 +76,61 @@ export default function DashboardClient() {
   }, []);
 
   return (
-    <SidebarProvider>
-        <TooltipProvider>
-            <AppSidebar />
-            <SidebarInset>
-                <header className="h-12 flex items-center px-4 border-b">
-                    <SidebarTrigger />
-                    <h1 className="text-lg font-semibold ml-2">Dashboard</h1>
-                </header>
-                <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Upcoming Shifts</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <UpcomingShifts shifts={shifts} />
-                    </CardContent>
-                    </Card>
-                    <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Upcoming Bills</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <UpcomingBills bills={bills} />
-                    </CardContent>
-                    </Card>
-                    <Card className="lg:col-span-2">
-                        <PaycheckSimulation />
-                    </Card>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                    <Card className="col-span-1 lg:col-span-4">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Net Income</CardTitle>
-                        <CardDescription>Last 6 months</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                        <NetIncomeChart />
-                    </CardContent>
-                    </Card>
-                    <Card className="col-span-1 lg:col-span-3">
-                    <SavingsGuidance />
-                    </Card>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">Need advice?</CardTitle>
-                            <CardDescription>Check your schedule for burnout risks before picking up extra shifts.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <OvertimeAlert />
-                        </CardContent>
-                    </Card>
-                </div>
-                </main>
-            </SidebarInset>
-        </TooltipProvider>
-    </SidebarProvider>
+    <>
+      <AppSidebar />
+      <div className="flex flex-col flex-1">
+          <header className="h-12 flex items-center px-4 border-b">
+              <h1 className="text-lg font-semibold ml-2">Dashboard</h1>
+          </header>
+          <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+              <CardHeader>
+                  <CardTitle className="font-headline">Upcoming Shifts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                  <UpcomingShifts shifts={shifts} />
+              </CardContent>
+              </Card>
+              <Card>
+              <CardHeader>
+                  <CardTitle className="font-headline">Upcoming Bills</CardTitle>
+              </CardHeader>
+              <CardContent>
+                  <UpcomingBills bills={bills} />
+              </CardContent>
+              </Card>
+              <Card className="lg:col-span-2">
+                  <PaycheckSimulation />
+              </Card>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+              <Card className="col-span-1 lg:col-span-4">
+              <CardHeader>
+                  <CardTitle className="font-headline">Net Income</CardTitle>
+                  <CardDescription>Last 6 months</CardDescription>
+              </CardHeader>
+              <CardContent className="pl-2">
+                  <NetIncomeChart />
+              </CardContent>
+              </Card>
+              <Card className="col-span-1 lg:col-span-3">
+              <SavingsGuidance />
+              </Card>
+              </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                  <CardHeader>
+                      <CardTitle className="font-headline">Need advice?</CardTitle>
+                      <CardDescription>Check your schedule for burnout risks before picking up extra shifts.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      <OvertimeAlert />
+                  </CardContent>
+              </Card>
+          </div>
+          </main>
+      </div>
+    </>
   );
 }

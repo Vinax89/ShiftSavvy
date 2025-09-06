@@ -5,10 +5,7 @@ import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firesto
 import { db } from '@/lib/firebase.client'
 import { buildForecast, enumeratePaydays, type CFEvent } from '@/domain/cashflow'
 import { toDailySeries } from '@/domain/cashflow.series'
-import AppHeader from '@/components/app-header'
-import { SidebarProvider } from '@/components/ui/sidebar'
 import AppSidebar from '@/components/app-sidebar'
-import { SidebarInset } from '@/components/ui/sidebar'
 import { getNetForPayday } from '@/lib/netpay'
 import CalendarGrid from './CalendarGrid'
 import { exportForecastCSV } from './export'
@@ -99,19 +96,20 @@ export default function CalendarClient(){
   }
 
   return (
-    <SidebarProvider>
+    <>
       <AppSidebar />
-      <SidebarInset>
-        <AppHeader />
-        <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-          <CalendarHeader
-            minBalanceCents={res?.summary.minBalanceCents ?? 0}
-            shortfallDays={res?.summary.shortfallDays ?? 0}
-            range={range} setRange={setRange}
-            filters={filters} setFilters={setFilters}
-            onExport={handleExport}
-            onSettings={() => setSettingsOpen(true)}
-          />
+      <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <header className="h-12 flex items-center px-4 border-b mb-4">
+            <h1 className="text-lg font-semibold">Cashflow</h1>
+        </header>
+        <CalendarHeader
+          minBalanceCents={res?.summary.minBalanceCents ?? 0}
+          shortfallDays={res?.summary.shortfallDays ?? 0}
+          range={range} setRange={setRange}
+          filters={filters} setFilters={setFilters}
+          onExport={handleExport}
+          onSettings={() => setSettingsOpen(true)}
+        />
 
         {res && (
           <>
@@ -145,7 +143,6 @@ export default function CalendarClient(){
           setBuffer={setBuffer}
         />
       </main>
-    </SidebarInset>
-    </SidebarProvider>
+    </>
   )
 }
