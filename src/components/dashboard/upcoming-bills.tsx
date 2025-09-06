@@ -1,4 +1,4 @@
-import { upcomingBills, type Bill } from '@/lib/mock-data';
+import { type Bill } from '@/lib/mock-data';
 import { format } from 'date-fns';
 import { Landmark, Wifi, Car, CreditCard, Home } from 'lucide-react';
 
@@ -10,8 +10,8 @@ const categoryIcons: { [key: string]: React.ElementType } = {
   Default: Landmark,
 };
 
-export default function UpcomingBills() {
-  const sortedBills = [...upcomingBills].sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+export default function UpcomingBills({ bills }: { bills: Bill[] }) {
+  const sortedBills = [...bills].sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
   
   return (
     <div className="space-y-4">

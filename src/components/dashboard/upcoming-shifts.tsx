@@ -1,11 +1,11 @@
-import { upcomingShifts, type Shift } from '@/lib/mock-data';
+import { type Shift } from '@/lib/mock-data';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-export default function UpcomingShifts() {
+export default function UpcomingShifts({ shifts }: { shifts: Shift[] }) {
   return (
     <div className="space-y-4">
-      {upcomingShifts.slice(0, 3).map((shift: Shift) => (
+      {shifts.slice(0, 3).map((shift: Shift) => (
         <div key={shift.id} className="flex items-center">
            <Avatar className="h-9 w-9">
             <AvatarImage src={`https://picsum.photos/seed/${shift.id}/100/100`} data-ai-hint="hospital building" />

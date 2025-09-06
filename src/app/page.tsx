@@ -1,5 +1,5 @@
-import DashboardClient from './DashboardClient';
+import DashboardPage from './DashboardPage';
 
 export default function Page() {
-  return <DashboardClient />;
+  return <DashboardPage />;
 }

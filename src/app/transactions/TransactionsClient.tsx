@@ -45,6 +45,38 @@ async function exportServer({ account, from, to }: { account?: string; from?: st
   a.click(); URL.revokeObjectURL(a.href)
 }
 
+function exportCsv(rows: any[], uid: string) {
+  const esc = (v: any) => {
+    const s = String(v ?? '')
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s
+  }
+  const header = ['id','postedDate','description','amountCents','currency','accountId','possibleDuplicateOf','src.kind','src.externalId']
+  const lines = [header.join(',')]
+  for (const r of rows) {
+    lines.push([
+      r.id,
+      r.postedDate,
+      r.description,
+      r.amountCents, // cents-at-rest preserved
+      r.currency,
+      r.accountId,
+      r.possibleDuplicateOf ?? '',
+      r.src?.kind ?? '',
+      r.src?.externalId ?? '',
+    ].map(esc).join(','))
+  }
+  const csv = lines.join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `transactions-${uid}-${new Date().toISOString().slice(0,10)}.csv`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
 
 export default function TransactionsClient() {
   const [items, setItems] = useState<any[]>([])
@@ -150,36 +182,4 @@ export default function TransactionsClient() {
       </div>
     </div>
   )
-}
-
-function exportCsv(rows: any[], uid: string) {
-  const esc = (v: any) => {
-    const s = String(v ?? '')
-    return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s
-  }
-  const header = ['id','postedDate','description','amountCents','currency','accountId','possibleDuplicateOf','src.kind','src.externalId']
-  const lines = [header.join(',')]
-  for (const r of rows) {
-    lines.push([
-      r.id,
-      r.postedDate,
-      r.description,
-      r.amountCents, // cents-at-rest preserved
-      r.currency,
-      r.accountId,
-      r.possibleDuplicateOf ?? '',
-      r.src?.kind ?? '',
-      r.src?.externalId ?? '',
-    ].map(esc).join(','))
-  }
-  const csv = lines.join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `transactions-${uid}-${new Date().toISOString().slice(0,10)}.csv`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
 }
