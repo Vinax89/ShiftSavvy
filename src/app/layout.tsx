@@ -2,7 +2,7 @@
 'use client';
 import type { Metadata } from 'next';
 import './globals.css';
-import { Toaster } from '@/components/ui/toaster';
+import Toaster from '@/components/ui/toaster';
 import { useEffect } from 'react';
 
 export default function RootLayout({
