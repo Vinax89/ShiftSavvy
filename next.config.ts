@@ -1,39 +1,14 @@
 import type { NextConfig } from 'next'
-import path from 'path'
-
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-});
-
-const ORIGIN = process.env.STUDIO_ORIGIN || ''
 
 const nextConfig: NextConfig = {
-  reactStrictMode: true,
+  // Allow dev assets (/ _next/*) to be loaded by Firebase Studio’s preview origin
+  allowedDevOrigins: [
+    'http://localhost:9000',
+    'http://localhost:9002',
+    process.env.FIREBASE_STUDIO_ORIGIN || ''
+  ].filter(Boolean) as string[],
 
-  // Allow Firebase Studio’s reverse-proxy to fetch dev assets.
-  allowedDevOrigins: [ORIGIN, 'http://localhost:9002', 'http://0.0.0.0:9002', 'https://9000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev'].filter(Boolean),
-
-  // Extra CORS for dev assets when proxied through Studio.
-  async headers() {
-    if (process.env.NODE_ENV !== 'development') return []
-    return [
-      {
-        source: '/_next/:path*',
-        headers: [
-          { key: 'Access-Control-Allow-Origin', value: ORIGIN || '*' },
-          { key: 'Access-Control-Allow-Credentials', value: 'true' },
-        ],
-      },
-    ]
-  },
-
-  // Keep Turbopack happy: do not set unsupported experimental flags or a custom webpack() hook.
-  turbopack: {
-    resolveAlias: {
-      '@/*': path.join(__dirname, 'src/*'),
-    },
-  },
-  experimental: {},
+  // IMPORTANT: remove any custom `webpack()` config to avoid the Turbopack warning.
 }
 
-export default withBundleAnalyzer(nextConfig)
+export default nextConfig
