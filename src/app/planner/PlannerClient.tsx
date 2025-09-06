@@ -37,6 +37,7 @@ export default function PlannerClient() {
   const [overrides, setOverrides] = useState<Record<string, number>>({})
   const [run, setRun] = useState<any[] | null>(null)
   const [baseline, setBaseline] = useState<any[] | null>(null)
+  const [tab, setTab] = useState('schedule')
 
   useEffect(() => { (async ()=>{
     const ds = (await getDocs(query(collection(db,'debts_accounts'), where('userId','==',uid)))).docs.map(d=>({ id:d.id, ...d.data() } as Debt))
@@ -186,7 +187,7 @@ export default function PlannerClient() {
       )}
 
       {run && (
-        <Tabs defaultValue="schedule">
+        <Tabs value={tab} onValueChange={setTab} className="mt-4">
           <TabsList>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
             <TabsTrigger value="accounts">Accounts</TabsTrigger>
