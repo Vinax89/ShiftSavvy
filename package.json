@@ -10,7 +10,6 @@
     "emulators": "firebase emulators:start --only firestore,storage,auth",
     "import:csv": "tsx -r dotenv/config src/tools/import/cli.ts",
     "import:generic": "node src/tools/import-generic-csv.mjs",
-    "reconcile:bnpl": "node scripts/reconcile-bnpl.mjs",
     "build": "next build",
     "start": "next start",
     "analyze": "ANALYZE=true next build",
