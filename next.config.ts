@@ -1,6 +1,8 @@
 
 import type {NextConfig} from 'next';
 
+const dynamicOrigin = process.env.NEXT_DEV_ALLOWED_ORIGIN;
+
 const nextConfig: NextConfig = {
   transpilePackages: ['@domain'], // add any local workspace libs imported by web
   images: {
@@ -28,7 +30,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/api/health',
-        destination: `${functionsBase}/api_health`,
+        destination: `${functions-base}/api_health`,
       },
       {
         source: '/api/transactions/export.csv',
@@ -42,8 +44,7 @@ const nextConfig: NextConfig = {
     '0.0.0.0',
     // match your cluster root (one wildcard level for the left-most part)
     '*.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev',
-    // optional: exact host shown in your log (paste your current one here)
-    '9000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev',
+    ...(dynamicOrigin ? [dynamicOrigin] : []),
   ],
   experimental: {},
 };
