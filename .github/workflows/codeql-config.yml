@@ -1,0 +1,20 @@
+name: ShiftSavvy CodeQL Config
+
+# Analyze only source; skip generated/build artifacts to keep runs fast/noisy-free
+paths:
+  - src
+  - functions/src
+  - scripts
+  - .github/workflows # keep Actions scanning if you want "actions" language
+
+paths-ignore:
+  - .next/**
+  - dist/**
+  - functions/dist/**
+  - coverage/**
+  - node_modules/**
+
+# Add extended security and quality rules
+queries:
+  - uses: security-extended
+  - uses: security-and-quality
