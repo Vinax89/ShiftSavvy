@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
@@ -7,15 +6,11 @@ service cloud.firestore {
     function creatingAsOwner() { return isAuthed() && request.resource.data.userId == uid(); }
     function updatingAsOwner() { return isAuthed() && resource.data.userId == uid(); }
 
-    // Generic helpers
     function hasOnly(allowed) { return request.resource.data.keys().hasOnly(allowed); }
-    function keepOnly(current, allowed) { return resource.data.diff(request.resource.data).changedKeys().hasOnly(allowed); }
-
-    // All docs that store money at rest must use integer cents and schemaVersion == 2
+    function keepOnly(res, allowed) { return res.data.diff(request.resource.data).changedKeys().hasOnly(allowed); }
     function isCents(n) { return n is int; }
     function requireSchemaV2() { return request.resource.data.schemaVersion == 2; }
 
-    // --- users ---
     match /users/{userId} {
       allow read, update, delete: if isAuthed() && uid() == userId;
       allow create: if isAuthed() && uid() == userId && hasOnly([
@@ -23,14 +18,12 @@ service cloud.firestore {
       ]);
     }
 
-    // --- shifts / transactions / obligations / debts_accounts ---
     match /{colName=shifts|transactions|obligations|debts_accounts}/{id} {
       allow read: if updatingAsOwner();
       allow delete, update: if updatingAsOwner();
       allow create: if creatingAsOwner();
     }
 
-    // --- tax_profiles (free id, must contain userId) ---
     match /tax_profiles/{id} {
       allow read, update, delete: if updatingAsOwner();
       allow create: if creatingAsOwner() && hasOnly([
@@ -38,7 +31,6 @@ service cloud.firestore {
       ]);
     }
 
-    // --- paycheck_estimates (strict write shape + v2 only) ---
     match /paycheck_estimates/{id} {
       allow read: if updatingAsOwner();
 
@@ -46,10 +38,9 @@ service cloud.firestore {
         && requireSchemaV2()
         && hasOnly([
           'userId','periodStart','periodEnd','inputsHash','summary','result',
-          'schemaVersion','createdAt'
+          'schemaVersion','createdAt','memo'
         ])
         && (
-          // summary shape (numbers allowed; hours may be fractional)
           request.resource.data.summary.shiftCount is int
           && request.resource.data.summary.hours is number
           && request.resource.data.summary.nightH is number
@@ -59,7 +50,6 @@ service cloud.firestore {
           && request.resource.data.summary.otHours is number
         )
         && (
-          // result: integer cents across the board
           isCents(request.resource.data.result.baseCents)
           && isCents(request.resource.data.result.diffCents)
           && isCents(request.resource.data.result.otPremiumCents)
@@ -71,40 +61,13 @@ service cloud.firestore {
           && isCents(request.resource.data.result.taxes.totalCents)
         );
 
-      // updates only allowed to set createdAt (server timestamp) or add a client-safe memo later
       allow update: if updatingAsOwner()
         && keepOnly(resource, ['createdAt','memo'])
         && (request.resource.data.memo == resource.data.memo || request.resource.data.memo is string);
+
       allow delete: if updatingAsOwner();
     }
-    
-    // --- payoff_overrides ---
-    match /payoff_overrides/{id} {
-      allow read: if updatingAsOwner();
-      allow write: if updatingAsOwner() && requireSchemaV2() && hasOnly(['userId','ym','overrideExtraDebtBudgetCents','reason','schemaVersion']);
-    }
-    
-    // --- payoff_plans ---
-    match /payoff_plans/{id} {
-      allow read: if updatingAsOwner();
-      allow write: if updatingAsOwner() && requireSchemaV2();
-    }
-    match /payoff_plans/{planId}/schedule/{ym} {
-      allow read: if isAuthed() && get(/databases/$(db)/documents/payoff_plans/$(planId)).data.userId == uid();
-      allow write: if isAuthed() && get(/databases/$(db)/documents/payoff_plans/$(planId)).data.userId == uid() && requireSchemaV2();
-    }
-    
-    // --- payoff_plans_runs ---
-    match /payoff_plans_runs/{id} {
-      allow read: if updatingAsOwner();
-      allow write: if updatingAsOwner() && requireSchemaV2();
-    }
-     match /payoff_plans_runs/{runId}/schedule/{ym} {
-      allow read: if isAuthed() && get(/databases/$(db)/documents/payoff_plans_runs/$(runId)).data.userId == uid();
-      allow write: if isAuthed() && get(/databases/$(db)/documents/payoff_plans_runs/$(runId)).data.userId == uid() && requireSchemaV2();
-    }
 
-    // Default deny
     match /{document=**} {
       allow read, write: if false;
     }

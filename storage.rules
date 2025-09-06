@@ -1,33 +1,28 @@
-
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     function isAuthed() { return request.auth != null; }
     function uid() { return request.auth.uid; }
 
-    // Only images (jpeg/png/heic/webp) and pdf up to 10MB
     function validUpload() {
       return request.resource.size < 10 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*')
-          || request.resource.contentType == 'application/pdf';
+        && (request.resource.contentType.matches('image/.*')
+            || request.resource.contentType == 'application/pdf');
     }
 
-    // Paystubs / Receipts per-user
     match /user_uploads/{userId}/paystubs/{fileId} {
       allow read, write: if isAuthed() && uid() == userId
-        && (!resource.exists() ? validUpload() : false); // no overwrites
+        && (!resource.exists() ? validUpload() : false);
     }
     match /user_uploads/{userId}/receipts/{fileId} {
       allow read, write: if isAuthed() && uid() == userId
         && (!resource.exists() ? validUpload() : false);
     }
 
-    // Imports archive — deny everything (server pipelines only)
     match /imports-archive/{any=**} {
       allow read, write: if false;
     }
 
-    // Default deny
     match /{all=**} { allow read, write: if false; }
   }
 }
