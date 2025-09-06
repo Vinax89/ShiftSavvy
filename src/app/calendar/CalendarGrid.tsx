@@ -7,10 +7,15 @@ import { cn } from '@/lib/utils'
 const fmtUSD = (c: number) => (c/100).toLocaleString(undefined,{style:'currency',currency:'USD'});
 
 export default function CalendarGrid({ days, bufferCents, onDayClick }:{ days: { date:string, balanceCents:number, pay?:number, bills?:number }[], bufferCents:number, onDayClick: (d:any)=>void }){
+  const [today, setToday] = useState('');
+
+  useEffect(() => {
+    setToday(new Date().toISOString().slice(0, 10));
+  }, []);
+  
   const monthKey = (d:string)=> d.slice(0,7)
   const groups = days.reduce((acc:any, x)=>{ (acc[monthKey(x.date)] ||= []).push(x); return acc }, {})
   const isWeekend = (ymd:string) => new Date(ymd + 'T00:00:00Z').getUTCDay() % 6 === 0;
-  const isToday = (ymd:string) => ymd === new Date().toISOString().slice(0,10);
   
   // Add empty divs for weekday offset
   if (days.length > 0) {
@@ -71,13 +76,13 @@ export default function CalendarGrid({ days, bufferCents, onDayClick }:{ days: {
                 className={cn(`p-2 min-h-[90px] text-xs space-y-1 text-left outline-none transition-shadow relative focus-visible:ring-2 focus-visible:ring-ring focus-visible:z-10`,
                   isWeekend(d.date) ? 'bg-muted/30' : 'bg-card',
                   d.balanceCents < 0 ? 'bg-destructive/10' : '',
-                  isToday(d.date)?'ring-2 ring-primary ring-offset-[-1px] z-10':'',
+                  d.date === today ?'ring-2 ring-primary ring-offset-[-1px] z-10':'',
                   'hover:shadow-md hover:z-20'
                 )}
                 aria-label={`${d.date}, balance ${fmtUSD(d.balanceCents)}`}
               >
                 <div className="flex items-start justify-between">
-                    <span className={cn('font-semibold', isToday(d.date) ? 'text-primary' : 'text-muted-foreground')}>{d.date.slice(8).replace(/^0/, '')}</span>
+                    <span className={cn('font-semibold', d.date === today ? 'text-primary' : 'text-muted-foreground')}>{d.date.slice(8).replace(/^0/, '')}</span>
                     <span className={cn("font-semibold", d.balanceCents < 0 ? 'text-destructive' : 'text-foreground')}>{fmtUSD(d.balanceCents)}</span>
                 </div>
                 <div className="space-y-0.5 pt-1 text-foreground">

@@ -24,8 +24,8 @@ export default function CalendarClient(){
   
   const [buffer, setBuffer] = useState(50000)
   const [range, setRange] = useState(90)
-  const [from, setFrom] = useState(new Date().toISOString().slice(0,10))
-  const [to, setTo] = useState(()=>{ const d = new Date(); d.setDate(d.getDate()+range); return d.toISOString().slice(0,10) })
+  const [from, setFrom] = useState<string | null>(null)
+  const [to, setTo] = useState<string | null>(null)
 
   const [schedule, setSchedule] = useState<any>({ kind:'biweekly', anchor: '2025-01-03', timezone: 'UTC' })
   const [obligations, setObligations] = useState<any[]>([])
@@ -37,14 +37,18 @@ export default function CalendarClient(){
   const [activeDay,setActiveDay] = useState<any>(null)
 
   useEffect(() => {
-    // Set timezone on client-side to avoid hydration mismatch
+    // Set timezone and initial dates on client-side to avoid hydration mismatch
     setSchedule((prev: any) => ({ ...prev, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }));
+    const today = new Date().toISOString().slice(0,10);
+    setFrom(today);
   }, []);
 
   useEffect(() => {
-    const newTo = new Date(from);
-    newTo.setDate(newTo.getDate() + range);
-    setTo(newTo.toISOString().slice(0, 10));
+    if (from) {
+      const newTo = new Date(from);
+      newTo.setDate(newTo.getDate() + range);
+      setTo(newTo.toISOString().slice(0, 10));
+    }
   }, [range, from]);
 
   useEffect(()=>{ (async ()=>{
@@ -53,6 +57,7 @@ export default function CalendarClient(){
   })() },[])
 
   async function recompute() {
+    if (!from || !to) return;
     try {
       const paydays = enumeratePaydays(schedule, from, to) 
       const nets: Record<string, number> = {}
@@ -72,7 +77,7 @@ export default function CalendarClient(){
   useEffect(()=>{ recompute() }, [buffer, from, to, schedule, obligations.length])
 
   const warning = res && res.summary.minBalanceCents < 0
-  const daily = useMemo(() => res ? toDailySeries(res.events, from, to, buffer) : [], [res, from, to, buffer])
+  const daily = useMemo(() => (res && from && to) ? toDailySeries(res.events, from, to, buffer) : [], [res, from, to, buffer])
 
   async function applyPlannerOverride(ym: string, neededDeltaCents: number) {
     const id = `${uid}_${ym}`
@@ -87,6 +92,10 @@ export default function CalendarClient(){
       exportForecastCSV(res.events)
       toast.info('CSV exported', { description: 'Your forecast CSV has been downloaded.' })
     }
+  }
+  
+  if (!from || !to) {
+    return null; // Or a loading skeleton
   }
 
   return (

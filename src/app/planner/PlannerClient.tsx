@@ -27,9 +27,9 @@ const fmtUSD = (cents: number) => (cents/100).toLocaleString(undefined, { style:
 export default function PlannerClient() {
   const uid = 'demo-uid' // TODO: auth
   const [strategy, setStrategy] = useState<'avalanche'|'snowball'>('avalanche')
-  const [startDate, setStartDate] = useState<string>(new Date().toISOString().slice(0,10))
+  const [startDate, setStartDate] = useState<string | null>(null)
   const [extra, setExtra] = useState<number>(40000)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [debts, setDebts] = useState<Debt[]>([])
   const [bnpl, setBnpl] = useState<BNPL[]>([])
   const [bnplObs, setBnplObs] = useState<any[]>([])
@@ -38,6 +38,10 @@ export default function PlannerClient() {
   const [run, setRun] = useState<any[] | null>(null)
   const [baseline, setBaseline] = useState<any[] | null>(null)
   const [tab, setTab] = useState('schedule')
+
+  useEffect(() => {
+    setStartDate(new Date().toISOString().slice(0, 10));
+  }, []);
 
   useEffect(() => { (async ()=>{
     const ds = (await getDocs(query(collection(db,'debts_accounts'), where('userId','==',uid)))).docs.map(d=>({ id:d.id, ...d.data() } as Debt))
@@ -69,6 +73,7 @@ export default function PlannerClient() {
   })() }, [uid])
 
   async function recompute() {
+    if (!startDate) return;
     setLoading(true)
     Sentry.addBreadcrumb({ category:'planner', message:'recompute', level:'info', data:{ strategy, startDate, extra } })
     try {
@@ -83,8 +88,10 @@ export default function PlannerClient() {
 
   // kick on first idle microtask
   useEffect(() => {
-    queueMicrotask(() => recompute().catch(() => {}));
-  }, []);
+    if (startDate) {
+        queueMicrotask(() => recompute().catch(() => {}));
+    }
+  }, [startDate]);
 
   // debounce subsequent recomputes
   useEffect(() => {
@@ -120,7 +127,7 @@ export default function PlannerClient() {
   }, [run, baseline])
 
   async function onSave() {
-    if (!run || !summary) return
+    if (!run || !summary || !startDate) return
     Sentry.addBreadcrumb({ category:'planner', message:'saveRun', level:'info' });
     const planRef = doc(collection(db,'payoff_plans'), nanoid())
     const runRef = doc(collection(db,'payoff_plans_runs'), nanoid())
@@ -134,6 +141,8 @@ export default function PlannerClient() {
     await batch.commit();
     toast.success('Plan saved', { description:`${summary.months} months, ${fmtUSD(summary.totalInterestCents)} interest` });
   }
+  
+  if (!startDate) return null; // or skeleton
 
   return (
     <SidebarProvider>
