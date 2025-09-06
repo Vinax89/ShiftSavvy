@@ -38,7 +38,7 @@ service cloud.firestore {
       allow delete: if ownerOnResource();
     }
 
-    // ---- transactions (v2; immutable core; allow notes/category edits) ----
+    // ---- transactions v2 (immutable core; allow notes/category edits) ----
     match /transactions/{id} {
       function isV2(d) { return d.schemaVersion == 2; }
       function baseKeysOK(d) {
@@ -63,7 +63,6 @@ service cloud.firestore {
         && request.resource.data.possibleDuplicateOf == resource.data.possibleDuplicateOf; // sticky once set
       allow delete: if ownerOnResource();
     }
-
 
     // ---- obligations ----
     function validateObligation(d) {
@@ -110,7 +109,7 @@ service cloud.firestore {
     // ---- paycheck_estimates (lock to schemaVersion:2 + immutable fields) ----
     function validateEstimateCreate(d) {
       return d.schemaVersion == 2 &&
-             d.keys().hasAll(['userId','periodStart','periodEnd','inputsHash','summary','result','schemaVersion']) &&
+             d.keys().hasAll(['userId','createdAt','periodStart','periodEnd','inputsHash','summary','result','schemaVersion']) &&
              isoDate(d.periodStart) && isoDate(d.periodEnd) &&
              d.inputsHash is string && d.summary is map && d.result is map;
     }
@@ -125,32 +124,26 @@ service cloud.firestore {
       allow update: if ownerOnResource() && validateEstimateUpdate(request.resource.data);
       allow delete: if ownerOnResource();
     }
-    
-    // ---- payoff_plans, runs, schedule, matches ----
+
     match /payoff_plans/{id} {
       allow read: if ownerOnResource();
       allow create: if ownerOnCreate() && request.resource.data.schemaVersion == 2;
       allow update: if ownerOnResource() && request.resource.data.schemaVersion == resource.data.schemaVersion && unchangedUserId();
       allow delete: if ownerOnResource();
     }
+
     match /payoff_plans_runs/{id} {
       allow read: if ownerOnResource();
       allow create: if ownerOnCreate() && request.resource.data.schemaVersion == 2;
       allow update, delete: if false; // treat runs as append-only
     }
-    match /payoff_plans_runs/{runId}/schedule/{ym} {
+
+    match /payoff_plans_runs/{id}/schedule/{ym} {
       allow read: if isAuthed() && request.auth.uid == resource.data.userId;
       allow create: if isAuthed() && request.auth.uid == request.resource.data.userId && request.resource.data.schemaVersion == 2;
       allow update, delete: if false; // append-only
     }
-    match /payoff_plans_runs/{runId}/matches/{ym} {
-      allow read: if isAuthed() && request.auth.uid == resource.data.userId;
-      allow create: if isAuthed() && request.auth.uid == request.resource.data.userId && request.resource.data.schemaVersion == 2;
-      allow update: if isAuthed() && request.auth.uid == resource.data.userId && request.resource.data.schemaVersion == resource.data.schemaVersion;
-      allow delete: if isAuthed() && request.auth.uid == resource.data.userId;
-    }
     
-    // ---- cashflow ----
     match /pay_schedules/{id} {
       allow read: if ownerOnResource();
       allow create: if ownerOnCreate() && request.resource.data.schemaVersion == 2;
@@ -164,7 +157,18 @@ service cloud.firestore {
       allow update, delete: if false; // append-only results
     }
 
+    match /payoff_overrides/{id} {
+      function isOwnerById() {
+        return request.auth.uid == id.split('_')[0];
+      }
+      allow read: if isOwnerById();
+      allow create, update: if ownerOnCreate() && request.resource.data.schemaVersion == 2 && isOwnerById();
+      allow delete: if isOwnerById();
+    }
+
     // ---- default deny (no other top-level collections) ----
     match /{document=**} { allow read, write: if false; }
   }
 }
+
+    

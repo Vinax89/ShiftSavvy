@@ -7,7 +7,7 @@ dayjs.extend(utc)
 dayjs.extend(timezone)
 
 
-export type CFEvent = { date: string, kind: 'pay'|'obligation', label: string, amountCents: number }
+export type CFEvent = { date: string, kind: 'pay'|'obligation', label: string, amountCents: number, balanceCents: number }
 export type CFResult = { events: CFEvent[], summary: { minBalanceCents: number, shortfallDays: number } }
 
 export function enumeratePaydays(ps: unknown, fromYMD: string, toYMD: string): string[] {
@@ -36,18 +36,23 @@ export function enumeratePaydays(ps: unknown, fromYMD: string, toYMD: string): s
   return dates.filter(d => d >= fromYMD && d <= toYMD)
 }
 
-export function buildForecast(params: {
+export async function buildForecast(params: {
   schedule: unknown
   obligations: { name: string, amountCents: number, cadence: 'monthly'|'weekly'|'semimonthly'|'biweekly', nextDueDate: string }[]
-  paycheck: { netForDate: (d: string) => number } // function returning expected net for a payday
+  paycheckProvider: { getNetForDate: (d: string) => Promise<number> }
   from: string, to: string, bufferCents: number
-}): CFResult {
+}): Promise<CFResult> {
   const ps = ZPaySchedule.parse(params.schedule)
   const paydays = enumeratePaydays(ps, params.from, params.to)
-  const events: CFEvent[] = []
-  for (const d of paydays) events.push({ date: d, kind: 'pay', label: 'Payday', amountCents: params.paycheck.netForDate(d) })
+  const events: Omit<CFEvent, 'balanceCents'>[] = []
+  
+  const nets = await Promise.all(paydays.map(d => params.paycheckProvider.getNetForDate(d)))
+
+  for (let i = 0; i < paydays.length; i++) {
+    events.push({ date: paydays[i], kind: 'pay', label: 'Payday', amountCents: nets[i] })
+  }
+
   for (const o of params.obligations) {
-    // expand obligations across horizon (monthly only for MVP)
     if (o.cadence === 'monthly') {
       let cur = dayjs(o.nextDueDate)
       const to = dayjs(params.to)
@@ -58,20 +63,21 @@ export function buildForecast(params: {
     }
   }
   events.sort((a,b)=> a.date.localeCompare(b.date) || (a.kind==='pay'?-1:1))
+  
   let bal = params.bufferCents
   let minBal = bal
   let shortfallDays = 0
-  const balances: number[] = []
+  
+  const finalEvents: CFEvent[] = []
+
   for (const e of events) {
     bal += e.amountCents
-    balances.push(bal)
     if (bal < 0) shortfallDays++
     if (bal < minBal) minBal = bal
-  }
-  let i = 0
-  for (const e of events) {
-    (e as any).balanceCents = balances[i++]
+    finalEvents.push({...e, balanceCents: bal})
   }
 
-  return { events, summary: { minBalanceCents: minBal, shortfallDays } }
+  return { events: finalEvents, summary: { minBalanceCents: minBal, shortfallDays } }
 }
+
+    

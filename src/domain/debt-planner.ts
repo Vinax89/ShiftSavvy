@@ -4,7 +4,7 @@ import { mulCentsByBps, addC } from './money'
 export type MonthLine = { accountId: string, minCents: number, extraCents: number, interestCents: number, principalCents: number, endBalanceCents: number }
 export type MonthSchedule = { ym: string, line: MonthLine[], bnpl: { planId: string, installmentCents: number, remainingCents: number }[], totals: { paidCents: number, interestCents: number } }
 
-export function simulatePayoff(input: { debts: Debt[]; bnpl: BNPL[]; plan: unknown; maxMonths?: number }) {
+export function simulatePayoff(input: { debts: Debt[]; bnpl: BNPL[]; plan: unknown; maxMonths?: number; overrides?: Record<string, number> }) {
   const debts = (input.debts as any[]).map(d => ZDebt.parse(d)).map(d => ({ ...d }))
   const bnpl = (input.bnpl as any[]).map(b => ZBnpl.parse(b)).map(b => ({ ...b }))
   const plan = ZPlan.parse(input.plan)
@@ -23,7 +23,7 @@ export function simulatePayoff(input: { debts: Debt[]; bnpl: BNPL[]; plan: unkno
 
   for (let m = 0; m < maxMonths; m++) {
     const ym = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`
-    let budget = plan.extraDebtBudgetCents
+    let budget = plan.extraDebtBudgetCents + (input.overrides?.[ym] ?? 0)
 
     // 1) BNPL reservations
     const bnplLines = bnpl.map(p => {
@@ -81,3 +81,5 @@ export function simulatePayoff(input: { debts: Debt[]; bnpl: BNPL[]; plan: unkno
 
   return out
 }
+
+    

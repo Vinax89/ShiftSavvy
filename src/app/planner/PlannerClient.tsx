@@ -28,6 +28,7 @@ export default function PlannerClient() {
   const [loading, setLoading] = useState(false)
   const [debts, setDebts] = useState<Debt[]>([])
   const [bnpl, setBnpl] = useState<BNPL[]>([])
+  const [overrides, setOverrides] = useState<Record<string, number>>({})
   const [run, setRun] = useState<any[] | null>(null)
   const [baseline, setBaseline] = useState<any[] | null>(null)
 
@@ -37,6 +38,8 @@ export default function PlannerClient() {
     const obs = (await getDocs(query(collection(db,'obligations'), where('userId','==',uid)))).docs.map(d=>({ id:d.id, ...d.data() }))
     // @ts-ignore
     setBnpl(obs.filter(o=>o.kind==='bnpl').map(o=>({ id:o.id, name:o.name, installmentCents:o.installmentCents ?? o.amountCents, remainingInstallments:o.remainingInstallments ?? 0 })))
+    const ov = (await getDocs(query(collection(db,'payoff_overrides'), where('userId','==',uid)))).docs.map(d => d.data())
+    setOverrides(Object.fromEntries(ov.map(o => [o.ym, o.overrideExtraDebtBudgetCents])))
   })() }, [uid])
 
   async function recompute() {
@@ -45,14 +48,14 @@ export default function PlannerClient() {
     try {
       const plan = { strategy, startDate, extraDebtBudgetCents: extra, assumptions: { interestModel:'monthly', dayOfMonth: 15 } }
       // @ts-ignore
-      const r = simulatePayoff({ debts, bnpl, plan })
+      const r = simulatePayoff({ debts, bnpl, plan, overrides })
       // @ts-ignore
-      const b = simulateMinOnly({ debts, bnpl, plan })
+      const b = simulateMinOnly({ debts, bnpl, plan, overrides })
       setRun(r); setBaseline(b)
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { recompute() }, [strategy, startDate, extra, debts.length, bnpl.length])
+  useEffect(() => { recompute() }, [strategy, startDate, extra, debts.length, bnpl.length, overrides])
 
   const summary = useMemo(() => run ? summarizeRun(run) : null, [run])
   const baseSummary = useMemo(() => baseline ? summarizeRun(baseline) : null, [baseline])
@@ -193,3 +196,5 @@ export default function PlannerClient() {
     </SidebarProvider>
   )
 }
+
+    
