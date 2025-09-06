@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { auth } from '@/lib/firebase.client'
+import TxnPickerModal from './TxnPickerModal'
 
 type Sched = { dueDate: string; amountCents: number; txnId?: string; paidCents?: number }
 type Plan = {
@@ -34,6 +35,9 @@ export default function ReviewClient() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState<{[k:string]: Plan}>({}) // planId -> draft
+  const [picker, setPicker] = useState<{ open: boolean; planId?: string; schedIdx?: number }>(
+    { open: false }
+  )
 
   async function fetchRollups() {
     if (!uid) return
@@ -78,9 +82,7 @@ export default function ReviewClient() {
     }
   }
 
-  async function linkTxn(planId: string, schedIdx: number) {
-    const txnId = prompt('Enter transaction ID to link:')
-    if (!txnId) return
+  async function linkTxn(planId: string, schedIdx: number, txnId: string) {
     // optimistic
     const prev = plans
     setPlans(plans.map(p => p.id===planId ? ({
@@ -233,7 +235,7 @@ export default function ReviewClient() {
                           <>
                             {s.txnId
                               ? <Button size="sm" variant="outline" onClick={()=>unlinkTxn(plan.id, i, s.txnId!)}>Unlink</Button>
-                              : <Button size="sm" onClick={()=>linkTxn(plan.id, i)}>Link</Button>}
+                              : <Button size="sm" onClick={()=>setPicker({ open:true, planId: plan.id, schedIdx: i })}>Link</Button>}
                             <Button size="sm" variant="secondary" onClick={()=>setDraft(plan.id, p=>({ ...p }))}>Edit</Button>
                           </>
                         )}
@@ -246,6 +248,21 @@ export default function ReviewClient() {
           })}
         </CardContent>
       </Card>
+      
+      {/* Modal */}
+      {picker.open && (() => {
+        const p = plans.find(x => x.id === picker.planId)
+        const s = p?.schedule[picker.schedIdx ?? -1]
+        if (!p || !s || !uid) return null
+        return <TxnPickerModal
+          open={picker.open}
+          onClose={()=>setPicker({ open:false })}
+          dueDate={s.dueDate}
+          amountCents={s.amountCents}
+          merchant={p.merchant}
+          onPick={(txnId)=>linkTxn(p.id, picker.schedIdx!, txnId)}
+        />
+      })()}
     </div>
   )
 }
