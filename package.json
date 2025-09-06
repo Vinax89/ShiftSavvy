@@ -7,7 +7,6 @@
     "clean": "rimraf .next .turbo node_modules/.cache .genkit && echo cleaned",
     "test": "vitest run",
     "test:rules": "vitest run tests/rules --reporter=dot",
-    "test:coverage": "vitest run --coverage",
     "emulators": "firebase emulators:start --only firestore,storage,auth",
     "import:csv": "tsx -r dotenv/config src/tools/import/cli.ts",
     "import:generic": "node src/tools/import-generic-csv.mjs",
@@ -26,6 +25,7 @@
     "lint": "eslint . --ext .ts,.tsx --max-warnings=0 -f node_modules/eslint-formatter-github",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "predev": "fuser -k 9002/tcp || true",
+    "postinstall": "patch-package",
     "typecheck": "tsc -p ."
   },
   "dependencies": {
