@@ -1,10 +1,14 @@
 
 import type {NextConfig} from 'next';
 
+const USE_EMULATOR = process.env.NEXT_USE_FUNCTIONS_EMULATOR === '1';
+const PROJECT = process.env.FIREBASE_PROJECT_ID ?? 'shiftsavvy-2l0pa';
+const REGION = process.env.FUNCTIONS_REGION ?? 'us-central1';
+const FN_ORIGIN = process.env.FUNCTIONS_EMULATOR_ORIGIN ?? 'http://127.0.0.1:5001';
 const dynamicOrigin = process.env.NEXT_DEV_ALLOWED_ORIGIN;
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@domain'], // add any local workspace libs imported by web
+  transpilePackages: ['@domain'],
   images: {
     remotePatterns: [
       {
@@ -22,7 +26,8 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    const functionsBase = 'http://127.0.0.1:5001/shiftsavvy-2l0pa/us-central1';
+    if (!USE_EMULATOR) return [];
+    const functionsBase = `${FN_ORIGIN}/${PROJECT}/${REGION}`;
     return [
       {
         source: '/api/estimates/:path*',
@@ -30,7 +35,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/api/health',
-        destination: `${functions-base}/api_health`,
+        destination: `${functionsBase}/api_health`,
       },
       {
         source: '/api/transactions/export.csv',
@@ -42,7 +47,7 @@ const nextConfig: NextConfig = {
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
-    // match your cluster root (one wildcard level for the left-most part)
+    // your Workstations cluster wildcard and/or exact host
     '*.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev',
     ...(dynamicOrigin ? [dynamicOrigin] : []),
   ],
