@@ -57,7 +57,7 @@ export default function ReviewClient() {
     const prev = plans
     setPlans(plans.map(p => p.id===planId ? draft : p))
     try {
-      const j = await apiFetch('/api/bnpl/plan', {
+      await apiFetch('/api/bnpl/plan', {
         method: 'POST',
         body: JSON.stringify(draft),
         requireAuth: true,
