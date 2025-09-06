@@ -1,24 +1,19 @@
+// Initialize Admin SDK once.
+import { initializeApp, getApps } from 'firebase-admin/app';
+if (!getApps().length) {
+    initializeApp();
+}
 
-import { onRequest } from 'firebase-functions/v2/https'
-import { initializeApp, getApps, applicationDefault } from 'firebase-admin/app'
-import { REGION } from './config'
-import { withCors } from './cors'
-import { sendError } from './errors'
-import { health } from './routes/health'
-import { createEstimate } from './routes/estimates'
-import { api_transactions_exportCsv } from './routes/transactions.export'
-import { alertsDaily, alertsRunNow } from './alerts'
+// Example HTTPS function (v2).
+import { onRequest } from 'firebase-functions/v2/https';
 
-if (!getApps().length) initializeApp({ credential: applicationDefault() })
+export const helloWorld = onRequest((req, res) => {
+  res.status(200).send('ShiftSavvy Functions are live ✅');
+});
 
-export const api_health = onRequest({ region: REGION }, (req, res) =>
-  withCors(async (req, res) => { try { await health(req, res) } catch (e) { sendError(res, e) } })(req, res)
-)
-
-export const api_estimates_create = onRequest({ region: REGION }, (req, res) =>
-  withCors(async (req, res) => { try { await createEstimate(req, res) } catch (e) { sendError(res, e) } })(req, res)
-)
-
-export { api_transactions_exportCsv };
-
-export { alertsDaily, alertsRunNow };
+// --- Add your real functions here ---
+// Example scheduled function (uncomment if you want one):
+// import { onSchedule } from 'firebase-functions/v2/scheduler';
+// export const nightlyTask = onSchedule("every day 01:00", async () => {
+//   // do work
+// });
