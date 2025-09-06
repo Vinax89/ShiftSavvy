@@ -24,10 +24,11 @@ export async function enqueueEstimate(userId: string, doc: any) {
   const m: Mutation = { id: crypto.randomUUID(), ts: now(), kind: 'add_estimate', userId, doc, retryCount: 0, nextAt: 0 }
   const dbx = await pdb(); await dbx.put('mutations', m)
   // Kick a flush attempt optimistically
-  flush().catch(()=>{})
+  flush('estimate-queue').catch(()=>{})
 }
 
-export async function flush() {
+export async function flush(queueName = 'estimate-queue') {
+  if (queueName !== 'estimate-queue') return; // Only handle this queue for now
   const dbx = await pdb()
   const tx = dbx.transaction('mutations', 'readwrite')
   const store = tx.store
@@ -53,16 +54,16 @@ export async function flush() {
 
 // Auto-flush on connectivity and focus
 if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => flush().catch(()=>{}))
-  window.addEventListener('focus', () => flush().catch(()=>{}))
-  navigator.serviceWorker?.addEventListener?.('message', (e: any) => { if (e.data?.type === 'SYNC_FLUSH') flush().catch(()=>{}) })
+  window.addEventListener('online', () => flush('estimate-queue').catch(()=>{}))
+  window.addEventListener('focus', () => flush('estimate-queue').catch(()=>{}))
+  navigator.serviceWorker?.addEventListener?.('message', (e: any) => { if (e.data?.type === 'SYNC_FLUSH' && e.data.queueName === 'estimate-queue') flush('estimate-queue').catch(()=>{}) })
 }
 
 export async function registerBackgroundSync() {
   if ('serviceWorker' in navigator && 'SyncManager' in window) {
     try {
         const reg = await navigator.serviceWorker.ready
-        await reg.sync.register('flush-queue') 
+        await (reg.sync as any).register('estimate-queue') 
     } catch (e) {
         console.error('Background sync registration failed:', e)
     }
