@@ -14,7 +14,10 @@
     "reconcile:bnpl": "node scripts/reconcile-bnpl.mjs",
     "build": "next build",
     "start": "next start",
-    "analyze": "ANALYZE=true next build"
+    "analyze": "ANALYZE=true next build",
+    "bnpl:reconcile": "node scripts/reconcile-bnpl.mjs --user $UID",
+    "bnpl:reconcile:dry": "node scripts/reconcile-bnpl.mjs --user $UID --dry",
+    "bnpl:recompute": "node scripts/recompute-bnpl-rollups.mjs $UID"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",

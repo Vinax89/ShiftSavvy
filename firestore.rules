@@ -1,94 +1,77 @@
 rules_version = '2';
+
 service cloud.firestore {
-  match /databases/{db}/documents {
-    function isAuthed() { return request.auth != null; }
-    function uid() { return request.auth.uid; }
-    function creatingAsOwner() { return isAuthed() && request.resource.data.userId == uid(); }
-    function updatingAsOwner() { return isAuthed() && resource.data.userId == uid(); }
-    function ownerOnResource() { return request.auth != null && request.auth.uid == resource.data.userId; }
-    function ownerOnCreate() { return request.auth != null && request.auth.uid == request.resource.data.userId; }
+  match /databases/{database}/documents {
 
-    // Generic helpers
-    function hasOnly(allowed) { return request.resource.data.keys().hasOnly(allowed); }
-    function keepOnly(res, allowed) { return res.data.diff(request.resource.data).changedKeys().hasOnly(allowed); }
+    // Helper functions
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
 
-    // All docs that store money at rest must use integer cents and schemaVersion == 2
-    function isCents(n) { return n is int; }
-    function requireSchemaV2() { return request.resource.data.schemaVersion == 2; }
-
-    // --- users ---
+    // Users
     match /users/{userId} {
-      allow read, update, delete: if isAuthed() && uid() == userId;
-      allow create: if isAuthed() && uid() == userId && hasOnly([
-        'displayName','photoURL','createdAt','updatedAt'
-      ]);
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
     }
 
-    // --- shifts / obligations / debts_accounts ---
-    match /{colName=shifts|obligations|debts_accounts}/{id} {
-      allow read: if updatingAsOwner();
-      allow delete, update: if updatingAsOwner();
-      allow create: if creatingAsOwner();
+    // Paycheck Estimates
+    match /paycheck_estimates/{estimateId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId)
+        && request.resource.data.schemaVersion == 2
+        && request.resource.data.result.netCents is number;
+    }
+
+    // Transactions
+    match /transactions/{transactionId} {
+        allow read, write: if isOwner(request.resource.data.userId);
     }
     
-    // --- transactions ---
-    match /transactions/{id} {
-      allow read: if ownerOnResource();
-      allow create: if ownerOnCreate() && request.resource.data.schemaVersion == 2;
-      allow update: if ownerOnResource() && request.resource.data.schemaVersion == 2;
-      allow delete: if ownerOnResource();
+    // Shifts
+    match /shifts/{shiftId} {
+        allow read, write: if isOwner(request.resource.data.userId);
+    }
+    
+    // Tax Profiles
+     match /tax_profiles/{userId} {
+        allow read, write: if isOwner(userId);
+    }
+    
+    // Obligations
+     match /obligations/{obligationId} {
+        allow read, write: if isOwner(request.resource.data.userId);
+    }
+    
+    // Debt Accounts
+     match /debts_accounts/{accountId} {
+        allow read, write: if isOwner(request.resource.data.userId);
     }
 
-
-    // --- tax_profiles (free id, must contain userId) ---
-    match /tax_profiles/{id} {
-      allow read, update, delete: if updatingAsOwner();
-      allow create: if creatingAsOwner() && hasOnly([
-        'userId','filingStatus','federal','state','fica','createdAt','updatedAt','schemaVersion'
-      ]);
+    // Payoff Plans
+    match /payoff_plans/{planId} {
+        allow read, write: if isOwner(request.resource.data.userId);
     }
-
-    // --- paycheck_estimates (strict write shape + v2 only) ---
-    match /paycheck_estimates/{id} {
-      allow read: if updatingAsOwner();
-
-      allow create: if creatingAsOwner()
-        && requireSchemaV2()
-        && hasOnly([
-          'userId','periodStart','periodEnd','inputsHash','summary','result',
-          'schemaVersion','createdAt','memo'
-        ])
-        && (
-          request.resource.data.summary.shiftCount is int
-          && request.resource.data.summary.hours is number
-          && request.resource.data.summary.nightH is number
-          && request.resource.data.summary.weekendH is number
-          && request.resource.data.summary.holidayH is number
-          && request.resource.data.summary.chargeH is number
-          && request.resource.data.summary.otHours is number
-        )
-        && (
-          isCents(request.resource.data.result.baseCents)
-          && isCents(request.resource.data.result.diffCents)
-          && isCents(request.resource.data.result.otPremiumCents)
-          && isCents(request.resource.data.result.grossCents)
-          && isCents(request.resource.data.result.netCents)
-          && isCents(request.resource.data.result.taxes.federalCents)
-          && isCents(request.resource.data.result.taxes.stateCents)
-          && isCents(request.resource.data.result.taxes.ficaCents)
-          && isCents(request.resource.data.result.taxes.totalCents)
-        );
-
-      // updates only allowed to set createdAt (server timestamp) or add a client-safe memo later
-      allow update: if updatingAsOwner()
-        && keepOnly(resource, ['createdAt','memo'])
-        && (request.resource.data.memo == resource.data.memo || request.resource.data.memo is string);
-      allow delete: if updatingAsOwner();
+    match /payoff_plans_runs/{runId} {
+        allow read, write: if isOwner(request.resource.data.userId);
     }
-
-    // Default deny
-    match /{document=**} {
-      allow read, write: if false;
+    match /payoff_plans_runs/{runId}/schedule/{ym} {
+        allow read, write: if isOwner(request.resource.data.userId);
+    }
+     match /payoff_overrides/{overrideId} {
+        allow read, write: if isOwner(request.resource.data.userId);
+    }
+    
+    // BNPL Data
+    match /users/{uid}/bnpl/contracts/{contractId} {
+      allow read: if isOwner(uid);
+      allow write: if false; // writes via Admin SDK only
+    }
+    match /users/{uid}/bnpl/contracts/{contractId}/installments/{instId} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+    }
+    match /users/{uid}/bnpl/contracts/{contractId}/links/{linkId} {
+      allow read: if isOwner(uid);
+      allow write: if false;
     }
   }
 }
