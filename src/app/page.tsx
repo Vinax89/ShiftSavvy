@@ -10,6 +10,7 @@ import UpcomingBills from '@/components/dashboard/upcoming-bills';
 import SavingsGuidance from '@/components/dashboard/savings-guidance';
 import { OvertimeAlert } from '@/components/dashboard/overtime-alert';
 import PaycheckSimulation from '@/components/dashboard/paycheck-simulation';
+import DemoToast from '@/components/dashboard/DemoToast';
 
 
 export default function DashboardPage() {
@@ -111,6 +112,9 @@ export default function DashboardPage() {
           </div>
           <div className="flex justify-center p-4">
             <OvertimeAlert />
+          </div>
+          <div className="flex justify-center p-4">
+            <DemoToast />
           </div>
         </main>
       </SidebarInset>
