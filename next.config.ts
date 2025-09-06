@@ -2,9 +2,7 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  reactStrictMode: true,
-  poweredByHeader: false,
-  transpilePackages: ['@domain'], // add any local packages used by web
+  transpilePackages: ['@domain'], // add any local workspace libs imported by web
   images: {
     remotePatterns: [
       {
@@ -38,14 +36,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // This is required to allow the Next.js dev server to accept requests from
-  // the Firebase Studio UI.
-  allowedDevOrigins: [
-    'https://*.cloudworkstations.dev',
-    'https://*.firebase.studio',
-    'localhost', 
-    '0.0.0.0',
-  ],
+  allowedDevOrigins: ['localhost', '0.0.0.0', '*.cloudworkstations.dev'],
   experimental: {},
 };
 
