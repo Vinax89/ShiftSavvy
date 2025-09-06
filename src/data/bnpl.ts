@@ -1,24 +1,14 @@
 // src/data/bnpl.ts
 import db from '@/lib/firebaseAdmin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { computeRollups } from '@/domain/bnpl.rollups';
+import type { Plan } from '@/domain/bnpl.rollups';
 
 const PLANS_PATH = (uid: string) => `users/${uid}/bnpl/contracts`;    // <— current
 const EVENTS_PATH = (uid: string) => `users/${uid}/bnpl/events`;      // <— new
 const DUAL_WRITE = process.env.BNPL_DUAL_WRITE !== 'false' // default true
 
-export type Plan = {
-  id: string;
-  provider?: 'klarna'|'afterpay'|'affirm'|'paypal'|'unknown';
-  merchant?: string;
-  principalCents?: number;
-  aprPct?: number|null;
-  schedule: { dueDate: string; amountCents: number; txnId?: string; paidCents?: number }[];
-  status?: 'active'|'paid'|'delinquent'|'cancelled';
-  source?: 'auto'|'manual'|'mixed';
-  notes?: string;
-  createdAt?: any;
-  updatedAt?: any;
-};
+export type { Plan };
 
 export async function upsertPlan(uid: string, plan: Plan) {
   const ref = db.collection(PLANS_PATH(uid)).doc(plan.id);
@@ -56,22 +46,6 @@ export async function closePlan(uid: string, planId: string) {
     .set({ status: 'paid', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
   await logEvent(uid, { type: 'closePlan', planId, at: FieldValue.serverTimestamp() });
 }
-
-export function computeRollups(plans: Plan[]) {
-  let outstandingCents = 0
-  let nextDue: string | null = null
-  for (const p of plans) {
-    for (const s of p.schedule || []) {
-      const remain = Math.max(0, (s.amountCents||0) - (s.paidCents||0))
-      if (remain > 0) {
-        outstandingCents += remain
-        if (!nextDue || s.dueDate < nextDue) nextDue = s.dueDate
-      }
-    }
-  }
-  return { outstandingCents, nextDue, plansCount: plans.length }
-}
-
 
 export async function rollups(uid: string) {
   const snap = await db.collection(PLANS_PATH(uid)).get();
