@@ -1,6 +1,11 @@
 'use server';
 import 'server-only';
 
+// Hard guard: only ever run on the server (prevents accidental client bundling)
+if (typeof window !== 'undefined') {
+  throw new Error('actions.server.ts must not run on the client')
+}
+
 import { z } from 'zod';
 import type { SavingsTargetGuidanceInput, SavingsTargetGuidanceOutput } from '@/ai/flows/savings-target-guidance.server';
 import type { OvertimeAlertOutput } from '@/ai/flows/overtime-alert.server';
