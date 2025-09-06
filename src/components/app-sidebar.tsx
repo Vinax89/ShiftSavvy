@@ -8,7 +8,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/icons';
-import { Home, Calendar, Wallet, Landmark, Target, Settings, CircleUser, PiggyBank, Briefcase } from 'lucide-react';
+import { Home, Calendar, Wallet, Landmark, Target, Settings, CircleUser, PiggyBank, Briefcase, Bot } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 export default function AppSidebar() {
@@ -50,6 +50,12 @@ export default function AppSidebar() {
             <SidebarMenuButton href="/planner" >
               <PiggyBank />
               <span>Debt Planner</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton href="/bnpl/review" >
+              <Bot />
+              <span>BNPL Review</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
