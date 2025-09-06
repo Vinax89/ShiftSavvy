@@ -277,12 +277,14 @@ async function sendEmail(to: string, subject: string, alerts: AlertDoc[]) {
 }
 
 // ---- Schedules & Endpoints ----
+const secrets = ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "SMTP_FROM", "SPEC3_TZ"];
 
 // Run daily at 8:30AM in your default TZ (override with env TZ)
 export const alertsDaily = onSchedule({
   schedule: "every day 08:30",
   timeZone: process.env.SPEC3_TZ || "America/Los_Angeles",
   region: "us-central1",
+  secrets,
 }, async () => {
   const uids = await listUserIds();
   for (const uid of uids) {
@@ -291,7 +293,7 @@ export const alertsDaily = onSchedule({
 });
 
 // Manual on-demand trigger: GET /alertsRunNow?uid=abc
-export const alertsRunNow = onRequest({region: "us-central1"}, async (req, res) => {
+export const alertsRunNow = onRequest({region: "us-central1", secrets}, async (req, res) => {
   const uid = (req.query.uid as string) || "";
   if (!uid) {
     res.status(400).send("Missing uid");
