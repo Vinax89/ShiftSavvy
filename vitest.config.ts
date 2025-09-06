@@ -1,28 +1,15 @@
 import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import path from 'path'
 
 export default defineConfig({
-  plugins: [react()],
   test: {
-    environment: 'jsdom',
     globals: true,
-    include: ['**/*.{test,spec}.?(c|m)[jt]s?(x)'],
+    environment: 'node',
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'src/**/*.spec.ts', 'src/**/*.spec.tsx'],
     coverage: {
-      reportsDirectory: 'coverage',
       reporter: ['text', 'lcov'],
+      reportsDirectory: 'coverage',
       include: ['src/**/*.{ts,tsx}', 'functions/src/**/*.ts'],
-      exclude: [
-        '**/*.test.*', '**/*.spec.*', '**/__tests__/**',
-        'src/ai/dev.ts', 'src/stubs/**', 'src/tools/**',
-        '**/*.config.ts', '**/*.config.js',
-        '.next/**', 'dist/**', 'functions/dist/**', 'coverage/**', 'node_modules/**'
-      ]
+      exclude: ['**/*.test.*', '**/*.spec.*', '.next/**', 'dist/**', 'functions/dist/**', 'coverage/**', 'node_modules/**']
     }
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
+  }
 })
