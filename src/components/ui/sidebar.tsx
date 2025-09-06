@@ -177,15 +177,18 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const mounted = useMounted()
 
     if (collapsible === "none") {
       return (
         <div
+          suppressHydrationWarning
+          data-sidebar="sidebar"
+          ref={ref}
           className={cn(
             "flex h-full w-[--sidebar-width] flex-col bg-sidebar text-sidebar-foreground",
             className
           )}
-          ref={ref}
           {...props}
         >
           {children}
@@ -562,6 +565,7 @@ const SidebarMenuButton = React.forwardRef<
     const button = (
       <Comp
         ref={ref}
+        suppressHydrationWarning
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
