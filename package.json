@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev"
+    "dev": "next dev --turbo -H 0.0.0.0 -p 9002",
+    "clean": "rm -rf .next node_modules/.cache && echo 'cleaned'"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",
