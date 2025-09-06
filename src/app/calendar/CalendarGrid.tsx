@@ -1,6 +1,6 @@
 
 'use client'
-import { CalendarDays, Wallet, Receipt, TriangleAlert } from 'lucide-react'
+import { CalendarDays, Wallet, Receipt, TriangleAlert, ShoppingCart } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -13,7 +13,7 @@ export default function CalendarGrid({
     onDayClick,
     alertDates 
 }:{ 
-    days: { date:string, balanceCents:number, pay?:number, bills?:number }[], 
+    days: { date:string, balanceCents:number, pay?:number, bills?:number, bnpl?: number }[], 
     bufferCents:number, 
     onDayClick: (d:any)=>void,
     alertDates: Set<string>
@@ -100,6 +100,7 @@ export default function CalendarGrid({
                 <div className="space-y-0.5 pt-1 text-foreground">
                   {d.pay ? <div className="flex items-center gap-1.5 text-green-700 dark:text-green-400"><Wallet className="w-3.5 h-3.5" /> +{fmtUSD(d.pay)}</div> : null}
                   {d.bills ? <div className="flex items-center gap-1.5 text-red-700 dark:text-red-400"><Receipt className="w-3.5 h-3.5" /> {fmtUSD(d.bills)}</div> : null}
+                  {d.bnpl ? <div className="flex items-center gap-1.5 text-orange-700 dark:text-orange-400"><ShoppingCart className="w-3.5 h-3.5" /> {fmtUSD(d.bnpl)}</div> : null}
                 </div>
                  {alertDates.has(d.date) && (
                     <Link href="/alerts" className="absolute bottom-1 right-1 text-amber-500 hover:text-amber-600" aria-label="View alerts for this day">

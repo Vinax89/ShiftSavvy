@@ -14,11 +14,17 @@ import CalendarHeader from './CalendarHeader'
 import DayDetails from './DayDetails'
 import SettingsDrawer from './SettingsDrawer'
 import { useAlerts } from '@/hooks/useAlerts'
+import { useUid } from '@/hooks/useUid'
+import { apiFetch } from '@/lib/api.client'
 
 const fmtUSD = (c:number)=> (c/100).toLocaleString(undefined,{ style:'currency', currency:'USD' })
 
+type RollupsPlan = { id:string; merchant:string; schedule:{ dueDate:string; amountCents:number; paidCents?:number; txnId?:string }[] }
+type RollupsResp = { ok:true; plans: RollupsPlan[] }
+
+
 export default function CalendarClient(){
-  const uid = 'demo-uid'
+  const uid = useUid()
   
   const [buffer, setBuffer] = useState(50000)
   const [range, setRange] = useState(90)
@@ -27,14 +33,15 @@ export default function CalendarClient(){
 
   const [schedule, setSchedule] = useState<any>({ kind:'biweekly', anchor: '2025-01-03', timezone: 'UTC' })
   const [obligations, setObligations] = useState<any[]>([])
+  const [bnplEvents, setBnplEvents] = useState<any[]>([])
   const [res, setRes] = useState<{events: CFEvent[], summary: any} | null>(null)
   
-  const [filters,setFilters] = useState({ showPay:true, showBills:true })
+  const [filters,setFilters] = useState({ showPay:true, showBills:true, showBnpl: true })
   const [drawerOpen,setDrawerOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [activeDay,setActiveDay] = useState<any>(null)
   
-  const alerts = useAlerts(uid);
+  const alerts = useAlerts(uid ?? undefined);
 
   const alertDates = useMemo(() => {
     if (!alerts) return new Set<string>();
@@ -71,22 +78,44 @@ export default function CalendarClient(){
     }
   }, [range, from]);
 
-  useEffect(()=>{ (async ()=>{
-    const obs = (await getDocs(query(collection(db,'obligations'), where('userId','==',uid)))).docs.map(d=>({ id:d.id, ...d.data() }))
-    setObligations(obs)
-  })() },[])
+  useEffect(()=>{
+    if (!uid) return;
+    (async ()=>{
+      try {
+        const obs = (await getDocs(query(collection(db,'obligations'), where('userId','==',uid)))).docs.map(d=>({ id:d.id, ...d.data() }))
+        setObligations(obs)
+
+        const r = await apiFetch<RollupsResp>('/api/bnpl/rollups', { requireAuth: true })
+        const newBnplEvents = (r.plans || []).flatMap(p =>
+          (p.schedule || [])
+            .filter(s => (s.paidCents ?? 0) < (s.amountCents ?? 0)) // pending
+            .map(s => ({
+              name: `BNPL — ${p.merchant}`,
+              amountCents: s.amountCents,
+              cadence: 'onetime' as const, // Treat as one-time for forecast
+              nextDueDate: s.dueDate
+            }))
+        )
+        setBnplEvents(newBnplEvents);
+
+      } catch (e:any) {
+        toast.error(e.message || 'Calendar data load failed');
+      }
+    })() 
+  },[uid])
 
   async function recompute() {
-    if (!from || !to) return;
+    if (!from || !to || !uid) return;
     try {
       const paydays = enumeratePaydays(schedule, from, to) 
       const nets: Record<string, number> = {}
       for (const d of paydays) {
         nets[d] = await getNetForPayday({ userId: uid, paydayYMD: d, schedule })
       }
-      const paycheckProvider = { netForDate: (d:string)=> nets[d] ?? 0 }
+      const paycheckProvider = { getNetForDate: (d:string) => Promise.resolve(nets[d] ?? 0) }
       
-      const forecastResult = buildForecast({ schedule, obligations, paycheckProvider, from, to, bufferCents: buffer });
+      const allObligations = [...obligations, ...bnplEvents];
+      const forecastResult = await buildForecast({ schedule, obligations: allObligations, paycheckProvider, from, to, bufferCents: buffer });
       setRes(forecastResult);
       toast.success('Forecast updated', { description: `${forecastResult.events.length} events across ${range} days` });
     } catch (err) {
@@ -94,12 +123,13 @@ export default function CalendarClient(){
     }
   }
 
-  useEffect(()=>{ recompute() }, [buffer, from, to, schedule, obligations.length])
+  useEffect(()=>{ recompute() }, [buffer, from, to, schedule, obligations, bnplEvents])
 
   const warning = res && res.summary.minBalanceCents < 0
   const daily = useMemo(() => (res && from && to) ? toDailySeries(res.events, from, to, buffer) : [], [res, from, to, buffer])
 
   async function applyPlannerOverride(ym: string, neededDeltaCents: number) {
+    if (!uid) return;
     const id = `${uid}_${ym}`
     await setDoc(doc(db, 'payoff_overrides', id), { userId: uid, ym, overrideExtraDebtBudgetCents: -Math.abs(neededDeltaCents), reason: 'shortfall', schemaVersion: 2 })
     toast.success('Override saved', { description: `Applied for ${ym}` })
@@ -150,7 +180,7 @@ export default function CalendarClient(){
               </div>
             )}
             <CalendarGrid 
-              days={daily.filter(d=> (filters.showPay || !d.pay) && (filters.showBills || !d.bills))} 
+              days={daily.filter(d=> (filters.showPay || !d.pay) && (filters.showBills || !d.bills) && (filters.showBnpl || !d.bnpl))} 
               bufferCents={buffer} 
               onDayClick={onDayClick}
               alertDates={alertDates} 

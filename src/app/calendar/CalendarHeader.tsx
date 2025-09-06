@@ -11,7 +11,7 @@ export default function CalendarHeader({
   shortfallDays: number
   range: number
   setRange: (n:number)=>void
-  filters: { showPay: boolean; showBills: boolean }
+  filters: { showPay: boolean; showBills: boolean; showBnpl: boolean }
   setFilters: (f: any)=>void
   onExport: () => void
   onSettings: () => void
@@ -42,6 +42,7 @@ export default function CalendarHeader({
           <div className="flex items-center gap-1">
             <Button variant={filters.showPay? 'secondary':'outline'} size="sm" onClick={()=>setFilters({ ...filters, showPay: !filters.showPay })}><Filter className="w-3.5 h-3.5 mr-1.5"/>Pay</Button>
             <Button variant={filters.showBills? 'secondary':'outline'} size="sm" onClick={()=>setFilters({ ...filters, showBills: !filters.showBills })}><Filter className="w-3.5 h-3.5 mr-1.5"/>Bills</Button>
+            <Button variant={filters.showBnpl? 'secondary':'outline'} size="sm" onClick={()=>setFilters({ ...filters, showBnpl: !filters.showBnpl })}><Filter className="w-3.5 h-3.5 mr-1.5"/>BNPL</Button>
           </div>
           <Button variant="outline" size="icon" onClick={onExport}><FileDown className="w-4 h-4" /></Button>
           <Button variant="outline" size="icon" onClick={onSettings}><Settings className="w-4 h-4" /></Button>

@@ -33,8 +33,14 @@ export default function DayDetails({ open, onOpenChange, day }:{ open:boolean, o
               <span className="font-medium text-red-600">{fmt(day.bills)}</span>
             </div>
           ) : null}
+          {day.bnpl ? (
+             <div className="flex items-center justify-between p-3 rounded-md border">
+              <span>BNPL Payments</span>
+              <span className="font-medium text-orange-600">{fmt(day.bnpl)}</span>
+            </div>
+          ) : null}
           
-          {!day.pay && !day.bills && (
+          {!day.pay && !day.bills && !day.bnpl && (
             <div className="text-center text-muted-foreground pt-8">
               <p>No transactions scheduled for this day.</p>
             </div>

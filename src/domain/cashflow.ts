@@ -1,4 +1,5 @@
 
+
 import { ZPaySchedule, type PaySchedule } from './pay-schedule.schema'
 import { dayjs } from '@/lib/dayjs'
 
@@ -45,7 +46,7 @@ export function enumeratePaydays(ps: unknown, fromYMD: string, toYMD: string): s
 
 export async function buildForecast(params: {
   schedule: unknown
-  obligations: { name: string, amountCents: number, cadence: 'monthly'|'weekly'|'semimonthly'|'biweekly', nextDueDate: string }[]
+  obligations: { name: string, amountCents: number, cadence: 'monthly'|'weekly'|'semimonthly'|'biweekly'|'onetime', nextDueDate: string }[]
   paycheckProvider: { getNetForDate: (d: string) => Promise<number> }
   from: string, to: string, bufferCents: number
 }): Promise<CFResult> {
@@ -60,7 +61,12 @@ export async function buildForecast(params: {
   }
 
   for (const o of params.obligations) {
-    if (o.cadence === 'monthly') {
+    if (o.cadence === 'onetime') {
+      const d = dayjs(o.nextDueDate);
+      if (d.isSameOrAfter(params.from) && d.isSameOrBefore(params.to)) {
+        events.push({ date: o.nextDueDate, kind: 'obligation', label: o.name, amountCents: -Math.abs(o.amountCents) });
+      }
+    } else if (o.cadence === 'monthly') {
       let cur = dayjs(o.nextDueDate)
       const to = dayjs(params.to)
       while (cur.isSameOrBefore(to)) {
