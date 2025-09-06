@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+import path from 'path'
 
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
@@ -27,7 +28,11 @@ const nextConfig: NextConfig = {
   },
 
   // Keep Turbopack happy: do not set unsupported experimental flags or a custom webpack() hook.
-  turbopack: {},
+  turbopack: {
+    resolveAlias: {
+      '@/*': path.join(__dirname, 'src/*'),
+    },
+  },
   experimental: {},
 }
 
