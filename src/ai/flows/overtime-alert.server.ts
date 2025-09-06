@@ -8,7 +8,7 @@
  * - OvertimeAlertOutput - The return type for the overtimeAlert function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai} from '@/ai/genkit.server';
 import {z} from 'genkit';
 
 const OvertimeAlertInputSchema = z.object({

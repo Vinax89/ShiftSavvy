@@ -8,7 +8,7 @@
  * - SavingsTargetGuidanceOutput - The return type for the savingsTargetGuidance function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai} from '@/ai/genkit.server';
 import {z} from 'genkit';
 
 const SavingsTargetGuidanceInputSchema = z.object({
