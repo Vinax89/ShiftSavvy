@@ -1,12 +1,13 @@
 import { z } from 'zod';
 
 export const ZTransactionSrc = z.object({
-  kind: z.enum(['csv','ofx','manual']),
+  kind: z.enum(['csv','ofx','manual', 'manualMatch']),
   fileName: z.string().optional(),
+  vendor: z.string().optional(),
   externalId: z.string().nullable().optional(), // OFX FITID if present
   sourceHash: z.string(),                        // sha256(base64url) of raw row
-  importedAt: z.string(),                        // ISO timestamp
-  importerVersion: z.string(),
+  importedAt: z.union([z.string(), z.number()]), // ISO timestamp or millis
+  importerVersion: z.string().optional(),
 });
 
 export const ZTransactionV2 = z.object({
@@ -20,5 +21,10 @@ export const ZTransactionV2 = z.object({
   category: z.string().optional(),               // user-editable
   src: ZTransactionSrc,
   schemaVersion: z.literal(2),
+  txKey: z.string().optional(), // sha256 of canonical fields
+  bnplProvider: z.string().optional(),
+  bnplPlanId: z.string().nullable().optional(),
+  bnplSequence: z.number().int().optional(),
+  possibleDuplicateOf: z.string().nullable().optional(),
 });
 export type TransactionV2 = z.infer<typeof ZTransactionV2>

@@ -51,7 +51,7 @@ async function importCSV(file: string, userId: string, accountId: string) {
       importerVersion: '2025-09-05.v1',
     }
     const dupId = await findSoftDuplicate(db, { userId, accountId, postedDate, amountCents, description })
-    const doc = { userId, accountId, postedDate, description, amountCents, currency: 'USD', src, schemaVersion: 2, possibleDuplicateOf: dupId }
+    const doc = { userId, accountId, postedDate, description, amountCents, currency: 'USD', src, schemaVersion: 2, possibleDuplicateOf: dupId, txKey: '' } // Added txKey placeholder
     results.push(await upsert(doc))
   }
   return results
@@ -77,7 +77,7 @@ async function importOFX2(file: string, userId: string, accountId: string) {
       importerVersion: '2025-09-05.v1',
     }
     const dupId = await findSoftDuplicate(db, { userId, accountId, postedDate, amountCents, description })
-    const doc = { userId, accountId, postedDate, description, amountCents, currency: 'USD', src, schemaVersion: 2, possibleDuplicateOf: dupId }
+    const doc = { userId, accountId, postedDate, description, amountCents, currency: 'USD', src, schemaVersion: 2, possibleDuplicateOf: dupId, txKey: '' } // Added txKey placeholder
     out.push(await upsert(doc))
   }
   return out

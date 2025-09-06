@@ -1,10 +1,9 @@
 import type { Firestore } from 'firebase-admin/firestore'
-import { trigramJaccard } from '../lib/dup-detect'
 import { createHash } from 'node:crypto'
 
 const PROVIDERS = [/affirm/i, /afterpay/i, /klarna/i, /paypal\s*(pay in 4|installments)/i, /shop\s*pay/i]
 
-export type Tx = { id:string, postedDate:string, description:string, amountCents:number, accountId:string, currency:string }
+export type Tx = { id:string, postedDate:string, description:string, amountCents:number, accountId:string, currency:string, bnplPlanId?: string }
 export type Detection = {
   planHash:string, provider:string, merchant:string, accountId:string, amountCents:number,
   cadence:'biweekly'|'monthly', startDate:string, count:number, observedIds:string[]
@@ -16,7 +15,7 @@ export async function detectBnpl(db: Firestore, userId: string): Promise<Detecti
   const rows = snap.docs.map(d=>({ id:d.id, ...(d.data() as any) })) as Tx[]
 
   // 1) provider pre-filter
-  const cand = rows.filter(r => PROVIDERS.some(rx => rx.test(r.description)))
+  const cand = rows.filter(r => !r.bnplPlanId && PROVIDERS.some(rx => rx.test(r.description)))
 
   // 2) cluster by (merchant-ish, amount, account)
   const groups: Record<string, Tx[]> = {}

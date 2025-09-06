@@ -5,12 +5,18 @@ service cloud.firestore {
     function uid() { return request.auth.uid; }
     function creatingAsOwner() { return isAuthed() && request.resource.data.userId == uid(); }
     function updatingAsOwner() { return isAuthed() && resource.data.userId == uid(); }
+    function ownerOnResource() { return request.auth != null && request.auth.uid == resource.data.userId; }
+    function ownerOnCreate() { return request.auth != null && request.auth.uid == request.resource.data.userId; }
 
+    // Generic helpers
     function hasOnly(allowed) { return request.resource.data.keys().hasOnly(allowed); }
     function keepOnly(res, allowed) { return res.data.diff(request.resource.data).changedKeys().hasOnly(allowed); }
+
+    // All docs that store money at rest must use integer cents and schemaVersion == 2
     function isCents(n) { return n is int; }
     function requireSchemaV2() { return request.resource.data.schemaVersion == 2; }
 
+    // --- users ---
     match /users/{userId} {
       allow read, update, delete: if isAuthed() && uid() == userId;
       allow create: if isAuthed() && uid() == userId && hasOnly([
@@ -18,12 +24,23 @@ service cloud.firestore {
       ]);
     }
 
-    match /{colName=shifts|transactions|obligations|debts_accounts}/{id} {
+    // --- shifts / obligations / debts_accounts ---
+    match /{colName=shifts|obligations|debts_accounts}/{id} {
       allow read: if updatingAsOwner();
       allow delete, update: if updatingAsOwner();
       allow create: if creatingAsOwner();
     }
+    
+    // --- transactions ---
+    match /transactions/{id} {
+      allow read: if ownerOnResource();
+      allow create: if ownerOnCreate() && request.resource.data.schemaVersion == 2;
+      allow update: if ownerOnResource() && request.resource.data.schemaVersion == 2;
+      allow delete: if ownerOnResource();
+    }
 
+
+    // --- tax_profiles (free id, must contain userId) ---
     match /tax_profiles/{id} {
       allow read, update, delete: if updatingAsOwner();
       allow create: if creatingAsOwner() && hasOnly([
@@ -31,6 +48,7 @@ service cloud.firestore {
       ]);
     }
 
+    // --- paycheck_estimates (strict write shape + v2 only) ---
     match /paycheck_estimates/{id} {
       allow read: if updatingAsOwner();
 
@@ -61,13 +79,14 @@ service cloud.firestore {
           && isCents(request.resource.data.result.taxes.totalCents)
         );
 
+      // updates only allowed to set createdAt (server timestamp) or add a client-safe memo later
       allow update: if updatingAsOwner()
         && keepOnly(resource, ['createdAt','memo'])
         && (request.resource.data.memo == resource.data.memo || request.resource.data.memo is string);
-
       allow delete: if updatingAsOwner();
     }
 
+    // Default deny
     match /{document=**} {
       allow read, write: if false;
     }
