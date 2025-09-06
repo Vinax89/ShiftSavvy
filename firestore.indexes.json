@@ -1,4 +1,3 @@
-
 {
   "indexes": [
     {
@@ -8,73 +7,7 @@
         { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "postedDate", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "accountId", "order": "ASCENDING" },
-        { "fieldPath": "postedDate", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "payoff_plans_runs",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "accountId", "order": "ASCENDING" },
-        { "fieldPath": "postedDate", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "cashflow_forecasts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "paycheck_estimates",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "periodStart", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "shifts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "date", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "bnplPlanId", "order": "ASCENDING" },
-        { "fieldPath": "postedDate", "order": "ASCENDING" }
-      ]
     }
-  ]
+  ],
+  "fieldOverrides": []
 }
