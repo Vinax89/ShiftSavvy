@@ -1,0 +1,35 @@
+name: Dependency review
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  # Needed for PR comment summary (safe even on forks; it simply won’t post if perms aren’t granted)
+  pull-requests: write
+
+concurrency:
+  group: depreview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        # Official GitHub action; v4 is the current major. Pin to a SHA if you prefer.
+        uses: actions/dependency-review-action@v4
+        with:
+          # Show a readable summary on the PR
+          comment-summary-in-pr: always
+          # Block merges if the PR introduces vulnerabilities of this severity or higher
+          fail-on-severity: high
+          # Retry if a registry responds with a transient “snapshot” warning
+          retry-on-snapshot-warnings: true
+          # Optional: license policy (uncomment/tune to your needs)
+          # allow-licenses: Apache-2.0, BSD-2-Clause, BSD-3-Clause, MIT, ISC
+          # deny-licenses: GPL-3.0, AGPL-3.0
