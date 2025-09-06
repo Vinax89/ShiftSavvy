@@ -21,21 +21,31 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
 
 // Firestore + offline cache
 // Patched to use long-polling for Cloud Workstations compatibility.
-let db = initializeFirestore(app, {
-  experimentalAutoDetectLongPolling: true,
-  useFetchStreams: false,
-  localCache: persistentLocalCache(),
-})
-try {
-  enableIndexedDbPersistence(db).catch(() => {/* already enabled or not supported */})
-} catch {/* older SDKs fallback to getFirestore */}
+let db;
+if (typeof window !== 'undefined') {
+  try {
+    db = initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+      useFetchStreams: false,
+      localCache: persistentLocalCache(),
+    });
+    enableIndexedDbPersistence(db).catch(() => {/* already enabled or not supported */});
+  } catch (e) {
+    db = getFirestore(app);
+  }
+} else {
+  db = getFirestore(app);
+}
 
 
 // Auth (optionally emulator)
 const auth = getAuth(app)
 if (process.env.NEXT_PUBLIC_FIREBASE_EMULATORS === '1') {
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
-  connectFirestoreEmulator(db, '127.0.0.1', 8080)
+  // Check if running in a browser environment
+  if (typeof window !== 'undefined') {
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
+    connectFirestoreEmulator(db, '127.0.0.1', 8080)
+  }
 }
 
 export { app, auth, db, onAuthStateChanged }

@@ -15,9 +15,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/manifest.webmanifest" />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased flex">
-        {children}
-        <Toaster />
         <ClientInit />
+        <Toaster />
+        {children}
       </body>
     </html>
   )
