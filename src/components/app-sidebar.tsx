@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Home, Wallet, Calendar, LineChart, FileText, Settings } from 'lucide-react';
 import { Logo } from '@/components/icons';
+import AlertBell from './ui/AlertBell';
 
 
 const items = [
@@ -46,6 +47,9 @@ export default function AppSidebar() {
               </li>
             )
           })}
+           <li>
+            <AlertBell />
+          </li>
         </ul>
       </nav>
       <div className="mt-auto p-2">
