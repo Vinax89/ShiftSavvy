@@ -1,20 +1,24 @@
 import type { NextConfig } from 'next'
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-});
 
+// Set this in .env.local, no trailing slash.
+// STUDIO_ORIGIN=https://9000-firebase-studio-xxxxxxxxxxxxxxxx.cluster-xxxxxxxxxxxxxxxx.dev
+const studioOrigin = process.env.STUDIO_ORIGIN?.trim();
 
 const nextConfig: NextConfig = {
-  // Add the Firebase Studio origin printed in your logs
-  // e.g. "https://9000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev"
-  allowedDevOrigins: [process.env.STUDIO_ORIGIN!].filter(Boolean) as string[],
+  /**
+   * Allow Firebase Studio (running on a different origin) to fetch /_next/* in dev.
+   * This fixes: "Blocked cross-origin request ... configure allowedDevOrigins".
+   */
+  allowedDevOrigins: studioOrigin ? [studioOrigin] : [],
 
-  // If you previously customized webpack, guard it so Turbopack stays in charge
+  /**
+   * If you ever add a webpack() customizer, guard it so Turbopack owns dev:
+   */
   // webpack: (config) => {
-  //   if ((process as any).env.__TURBOPACK) return config; // no-op under Turbopack
-  //   // ...any webpack-only tweaks for production builds
+  //   if ((process as any).env.__TURBOPACK) return config; // no-op in dev
+  //   // ...prod-only webpack tweaks (if any)
   //   return config;
   // },
 }
 
-export default withBundleAnalyzer(nextConfig);
+export default nextConfig;
