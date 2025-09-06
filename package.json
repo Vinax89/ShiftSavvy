@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbo -H 0.0.0.0 -p 9002",
-    "clean": "rimraf .next node_modules/.cache && echo 'cleaned'",
+    "clean": "rimraf .next .turbo node_modules/.cache .genkit && echo cleaned",
     "test": "vitest run",
     "test:rules": "vitest run tests/rules --reporter=dot",
     "emulators": "firebase emulators:start --only firestore,storage,auth",

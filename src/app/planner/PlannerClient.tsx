@@ -16,7 +16,9 @@ import AppSidebar from '@/components/app-sidebar'
 import { nanoid } from 'nanoid'
 import { toast } from '@/components/ui/toast'
 import BnplTimeline from './BnplTimeline'
-import { BalanceChart } from './Chart'
+import dynamic from 'next/dynamic'
+
+const BalanceChart = dynamic(() => import('./Chart').then(m => m.BalanceChart), { ssr: false });
 
 
 const fmtUSD = (cents: number) => (cents/100).toLocaleString(undefined, { style: 'currency', currency: 'USD' })
