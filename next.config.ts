@@ -36,7 +36,15 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  allowedDevOrigins: ['localhost', '0.0.0.0', '*.cloudworkstations.dev'],
+  allowedDevOrigins: [
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    // match your cluster root (one wildcard level for the left-most part)
+    '*.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev',
+    // optional: exact host shown in your log (paste your current one here)
+    '9000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev',
+  ],
   experimental: {},
 };
 
