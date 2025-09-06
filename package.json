@@ -4,8 +4,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "typecheck": "tsc --noEmit"
+    "dev": "next dev"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",
