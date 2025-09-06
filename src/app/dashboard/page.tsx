@@ -1,16 +1,13 @@
-'use client';
-
-import dynamic from 'next/dynamic';
-
-const DashboardClient = dynamic(() => import('../DashboardClient'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-full w-full animate-pulse items-center justify-center p-4 text-sm text-muted-foreground">
-      Loading dashboard…
-    </div>
-  ),
-});
+// src/app/dashboard/page.tsx  (SERVER COMPONENT)
+import 'server-only'
+import { Suspense } from 'react'
+import DashboardClient from '../DashboardClient'
 
 export default function Page() {
-  return <DashboardClient />;
+  // Suspense fallback is optional; client components render on the client anyway
+  return (
+    <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading dashboard…</div>}>
+      <DashboardClient />
+    </Suspense>
+  )
 }
