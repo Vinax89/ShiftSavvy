@@ -31,7 +31,7 @@ export default function BnplCard() {
 
   const dollars = (data?.outstandingCents ?? 0) / 100
   return (
-    <Card>
+    <Card data-testid="bnpl-card">
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
         <div>
           <CardTitle className="text-sm font-medium">BNPL Balance</CardTitle>
