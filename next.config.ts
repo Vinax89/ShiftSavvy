@@ -1,64 +1,25 @@
 
 import type {NextConfig} from 'next';
 
-const USE_EMULATOR = process.env.NEXT_USE_FUNCTIONS_EMULATOR === '1';
-const PROJECT = process.env.FIREBASE_PROJECT_ID ?? 'shiftsavvy-2l0pa';
-const REGION = process.env.FUNCTIONS_REGION ?? 'us-central1';
-const FN_ORIGIN = process.env.FUNCTIONS_EMULATOR_ORIGIN ?? 'http://127.0.0.1:5001';
-const dynamicOrigin = process.env.NEXT_DEV_ALLOWED_ORIGIN;
-
-const nextConfig: NextConfig = {
+const config: NextConfig = {
+  // Helps Next treat Turbopack as the bundler you intend to use (and lets you tweak it later)
   turbopack: {},
-  serverExternalPackages: ['handlebars', 'dotprompt', 'genkit', '@genkit-ai/core'],
-  transpilePackages: ['@domain'],
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-        port: '',
-        pathname: '/**',
-      },
-    ],
-  },
-  async rewrites() {
-    if (!USE_EMULATOR) return [];
-    const functionsBase = `${FN_ORIGIN}/${PROJECT}/${REGION}`;
-    return [
-      {
-        source: '/api/estimates/:path*',
-        destination: `${functionsBase}/api_estimates_:path*`,
-      },
-      {
-        source: '/api/health',
-        destination: `${functionsBase}/api_health`,
-      },
-      {
-        source: '/api/transactions/export.csv',
-        destination: `${functionsBase}/api_transactions_exportCsv`,
-      },
-    ];
-  },
+
+  // keep this TOP-LEVEL (not under experimental)
   allowedDevOrigins: [
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
-    // your Workstations cluster wildcard and/or exact host
     '*.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev',
     '9000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev',
-    ...(dynamicOrigin ? [dynamicOrigin] : []),
   ],
-  webpack(config, { dev }) {
-    if (dev) return config;
+
+  // If you have a custom webpack() override, disable it during dev.
+  webpack(config, {dev}) {
+    if (dev) return config; // ← prevents Webpack-only tweaks from forcing a fallback
     // production-only tweaks can go here…
     return config;
   },
 };
 
-export default nextConfig;
+export default config;
