@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { getSavingsGuidance } from '@/lib/actions.server';
 import { type SavingsTargetGuidanceOutput } from '@/ai/flows/savings-target-guidance.server';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sparkles, Loader2, Lightbulb, CheckCircle, XCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+async function fetchGuidance(formData: FormData): Promise<SavingsTargetGuidanceOutput> {
+    const res = await fetch('/api/savings-guidance', {
+        method: 'POST',
+        body: JSON.stringify(Object.fromEntries(formData)),
+        headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to fetch guidance');
+    }
+    return res.json();
+}
+
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -33,7 +46,7 @@ export default function SavingsGuidance() {
         try {
             setError(null);
             setResult(null); // Clear previous results
-            const guidance = await getSavingsGuidance(formData);
+            const guidance = await fetchGuidance(formData);
             setResult(guidance);
         } catch (e) {
             setError(e instanceof Error ? e.message : 'An unknown error occurred.');

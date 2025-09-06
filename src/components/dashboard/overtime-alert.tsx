@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { getOvertimeAlert } from '@/lib/actions.server';
 import { type OvertimeAlertOutput } from '@/ai/flows/overtime-alert.server';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +15,18 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Loader2, Siren } from 'lucide-react';
 
+async function triggerAlert(): Promise<OvertimeAlertOutput> {
+    const res = await fetch('/api/overtime-alert', {
+        method: 'POST',
+        body: JSON.stringify({}), // Empty body for now, can add inputs later
+        headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) {
+        throw new Error('Failed to fetch alert');
+    }
+    return res.json();
+}
+
 export function OvertimeAlert() {
     const [alert, setAlert] = useState<OvertimeAlertOutput | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -24,7 +35,7 @@ export function OvertimeAlert() {
         setIsLoading(true);
         setAlert(null);
         try {
-            const result = await getOvertimeAlert();
+            const result = await triggerAlert();
             setAlert(result);
         } catch (error) {
             console.error(error);

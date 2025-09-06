@@ -1,4 +1,3 @@
-import 'server-only'
 'use server';
 import 'server-only';
 
@@ -10,6 +9,9 @@ if (typeof window !== 'undefined') {
 import { z } from 'zod';
 import type { SavingsTargetGuidanceInput, SavingsTargetGuidanceOutput } from '@/ai/flows/savings-target-guidance.server';
 import type { OvertimeAlertOutput } from '@/ai/flows/overtime-alert.server';
+import { savingsTargetGuidance } from '@/ai/flows/savings-target-guidance.server';
+import { runOvertimeAlert } from '@/ai/flows/overtime-alert.server';
+
 
 const savingsSchema = z.object({
     income: z.coerce.number().positive({message: "Income must be a positive number."}),
@@ -31,8 +33,6 @@ export async function getSavingsGuidance(formData: FormData): Promise<SavingsTar
         throw new Error(validatedFields.error.errors.map(e => e.message).join(', '));
     }
 
-    const { savingsTargetGuidance } = await import('@/ai/flows/savings-target-guidance.server');
-
     const input: SavingsTargetGuidanceInput = {
         ...validatedFields.data,
         futureShifts: '3 shifts scheduled next week: Mon 8h, Wed 8h, Fri 12h. Est. total pay $850.' // Mock data
@@ -42,7 +42,6 @@ export async function getSavingsGuidance(formData: FormData): Promise<SavingsTar
 }
 
 export async function getOvertimeAlert(): Promise<OvertimeAlertOutput> {
-    const { runOvertimeAlert } = await import('@/ai/flows/overtime-alert.server');
     const input = {
         userName: 'Demo User',
         workSchedule: 'Worked 40 hours this week. Shifts on Mon, Tue, Wed, Fri, Sat.',

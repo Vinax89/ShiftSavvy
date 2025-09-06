@@ -1,4 +1,3 @@
-import 'server-only'
 'use server';
 import 'server-only';
 
@@ -11,6 +10,7 @@ import 'server-only';
  */
 
 import { z } from 'zod';
+import { ai } from '@/ai/genkit.server';
 
 const OvertimeAlertInputSchema = z.object({
   workSchedule: z.string().describe('The user\'s work schedule in plain text.'),
@@ -25,36 +25,34 @@ const OvertimeAlertOutputSchema = z.object({
 export type OvertimeAlertOutput = z.infer<typeof OvertimeAlertOutputSchema>;
 
 
+const prompt = ai.definePrompt({
+    name: 'overtimeAlertPrompt',
+    input: {schema: OvertimeAlertInputSchema},
+    output: {schema: OvertimeAlertOutputSchema},
+    prompt: `You are a helpful assistant designed to gently warn users about potential overwork and burnout.
+
+    Given the user's work schedule and the details of a potential new shift, provide a personalized warning message.
+    Be empathetic and understanding, and focus on the user's well-being.
+
+    User Name: {{{userName}}}
+    Work Schedule: {{{workSchedule}}}
+    Shift Details: {{{shiftDetails}}}
+
+    Craft a message that is both informative and supportive, encouraging the user to prioritize their health and avoid overexertion.`,
+});
+
+const overtimeAlertFlow = ai.defineFlow(
+{
+    name: 'overtimeAlertFlow',
+    inputSchema: OvertimeAlertInputSchema,
+    outputSchema: OvertimeAlertOutputSchema,
+},
+async (flowInput) => {
+    const {output} = await prompt(flowInput);
+    return output!;
+}
+);
+
 export async function runOvertimeAlert(input: OvertimeAlertInput): Promise<OvertimeAlertOutput> {
-    const { ai } = await import('@/ai/genkit.server');
-    
-    const prompt = ai.definePrompt({
-        name: 'overtimeAlertPrompt',
-        input: {schema: OvertimeAlertInputSchema},
-        output: {schema: OvertimeAlertOutputSchema},
-        prompt: `You are a helpful assistant designed to gently warn users about potential overwork and burnout.
-
-        Given the user's work schedule and the details of a potential new shift, provide a personalized warning message.
-        Be empathetic and understanding, and focus on the user's well-being.
-
-        User Name: {{{userName}}}
-        Work Schedule: {{{workSchedule}}}
-        Shift Details: {{{shiftDetails}}}
-
-        Craft a message that is both informative and supportive, encouraging the user to prioritize their health and avoid overexertion.`,
-    });
-
-    const overtimeAlertFlow = ai.defineFlow(
-    {
-        name: 'overtimeAlertFlow',
-        inputSchema: OvertimeAlertInputSchema,
-        outputSchema: OvertimeAlertOutputSchema,
-    },
-    async (flowInput) => {
-        const {output} = await prompt(flowInput);
-        return output!;
-    }
-    );
-
     return await overtimeAlertFlow(input);
 }

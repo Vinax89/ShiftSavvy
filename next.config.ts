@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
 
   // Allow Firebase Studio’s reverse-proxy to fetch dev assets.
-  allowedDevOrigins: [ORIGIN, 'http://localhost:9002', 'http://0.0.0.0:9002'].filter(Boolean),
+  allowedDevOrigins: [ORIGIN, 'http://localhost:9002', 'http://0.0.0.0:9002', 'https://9000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev'].filter(Boolean),
 
   // Extra CORS for dev assets when proxied through Studio.
   async headers() {
