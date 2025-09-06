@@ -8,6 +8,7 @@ const FN_ORIGIN = process.env.FUNCTIONS_EMULATOR_ORIGIN ?? 'http://127.0.0.1:500
 const dynamicOrigin = process.env.NEXT_DEV_ALLOWED_ORIGIN;
 
 const nextConfig: NextConfig = {
+  turbopack: {},
   serverExternalPackages: ['handlebars', 'dotprompt', 'genkit', '@genkit-ai/core'],
   transpilePackages: ['@domain'],
   images: {
@@ -50,16 +51,13 @@ const nextConfig: NextConfig = {
     '0.0.0.0',
     // your Workstations cluster wildcard and/or exact host
     '*.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev',
+    '9000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev',
     ...(dynamicOrigin ? [dynamicOrigin] : []),
   ],
-  experimental: {},
-  turbopack: {
-    resolveAlias: {
-      'handlebars': require.resolve('./src/stubs/empty.js'),
-      'dotprompt': require.resolve('./src/stubs/empty.js'),
-      'genkit': require.resolve('./src/stubs/empty.js'),
-      '@genkit-ai/core': require.resolve('./src/stubs/empty.js'),
-    },
+  webpack(config, { dev }) {
+    if (dev) return config;
+    // production-only tweaks can go here…
+    return config;
   },
 };
 
