@@ -74,13 +74,15 @@ export default function PlannerClient() {
       const plan: Plan = { strategy, startDate, extraDebtBudgetCents: extra, assumptions: { interestModel:'monthly', dayOfMonth: 15 } }
       // @ts-ignore
       const r = simulatePayoff({ debts, bnpl, plan, overrides })
-      // @ts-ignore
+      // @tsignore
       const b = simulateMinOnly({ debts, bnpl, plan, overrides })
       setRun(r); setBaseline(b)
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { recompute() }, [strategy, startDate, extra, debts.length, bnpl.length, overrides])
+  useEffect(() => {
+    queueMicrotask(recompute);
+  }, [strategy, startDate, extra, debts.length, bnpl.length, overrides])
 
   const summary = useMemo(() => run ? summarizeRun(run) : null, [run])
   const baseSummary = useMemo(() => baseline ? summarizeRun(baseline) : null, [baseline])
@@ -229,5 +231,3 @@ export default function PlannerClient() {
     </SidebarProvider>
   )
 }
-
-    
