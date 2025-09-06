@@ -13,6 +13,7 @@ import { toast } from '@/components/ui/toast'
 import CalendarHeader from './CalendarHeader'
 import DayDetails from './DayDetails'
 import SettingsDrawer from './SettingsDrawer'
+import { useAlerts } from '@/hooks/useAlerts'
 
 const fmtUSD = (c:number)=> (c/100).toLocaleString(undefined,{ style:'currency', currency:'USD' })
 
@@ -32,6 +33,28 @@ export default function CalendarClient(){
   const [drawerOpen,setDrawerOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [activeDay,setActiveDay] = useState<any>(null)
+  
+  const alerts = useAlerts(uid);
+
+  const alertDates = useMemo(() => {
+    if (!alerts) return new Set<string>();
+    const dates = new Set<string>();
+    alerts.forEach(alert => {
+      if (alert.dueDate) {
+        dates.add(alert.dueDate);
+      }
+      if (alert.type === 'buffer-risk') {
+        // Highlight next 7 days from today
+        const today = new Date();
+        for (let i=0; i<7; i++) {
+            const d = new Date(today);
+            d.setDate(d.getDate() + i);
+            dates.add(d.toISOString().slice(0,10));
+        }
+      }
+    });
+    return dates;
+  }, [alerts]);
 
   useEffect(() => {
     // Set timezone and initial dates on client-side to avoid hydration mismatch
@@ -129,7 +152,8 @@ export default function CalendarClient(){
             <CalendarGrid 
               days={daily.filter(d=> (filters.showPay || !d.pay) && (filters.showBills || !d.bills))} 
               bufferCents={buffer} 
-              onDayClick={onDayClick} 
+              onDayClick={onDayClick}
+              alertDates={alertDates} 
             />
           </>
         )}

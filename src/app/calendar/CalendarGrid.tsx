@@ -1,12 +1,23 @@
 
 'use client'
-import { CalendarDays, Wallet, Receipt } from 'lucide-react'
+import { CalendarDays, Wallet, Receipt, TriangleAlert } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
 const fmtUSD = (c: number) => (c/100).toLocaleString(undefined,{style:'currency',currency:'USD'});
 
-export default function CalendarGrid({ days, bufferCents, onDayClick }:{ days: { date:string, balanceCents:number, pay?:number, bills?:number }[], bufferCents:number, onDayClick: (d:any)=>void }){
+export default function CalendarGrid({ 
+    days, 
+    bufferCents, 
+    onDayClick,
+    alertDates 
+}:{ 
+    days: { date:string, balanceCents:number, pay?:number, bills?:number }[], 
+    bufferCents:number, 
+    onDayClick: (d:any)=>void,
+    alertDates: Set<string>
+}){
   const [today, setToday] = useState('');
 
   useEffect(() => {
@@ -76,6 +87,7 @@ export default function CalendarGrid({ days, bufferCents, onDayClick }:{ days: {
                 className={cn(`p-2 min-h-[90px] text-xs space-y-1 text-left outline-none transition-shadow relative focus-visible:ring-2 focus-visible:ring-ring focus-visible:z-10`,
                   isWeekend(d.date) ? 'bg-muted/30' : 'bg-card',
                   d.balanceCents < 0 ? 'bg-destructive/10' : '',
+                  alertDates.has(d.date) && 'bg-amber-500/10',
                   d.date === today ?'ring-2 ring-primary ring-offset-[-1px] z-10':'',
                   'hover:shadow-md hover:z-20'
                 )}
@@ -89,6 +101,11 @@ export default function CalendarGrid({ days, bufferCents, onDayClick }:{ days: {
                   {d.pay ? <div className="flex items-center gap-1.5 text-green-700 dark:text-green-400"><Wallet className="w-3.5 h-3.5" /> +{fmtUSD(d.pay)}</div> : null}
                   {d.bills ? <div className="flex items-center gap-1.5 text-red-700 dark:text-red-400"><Receipt className="w-3.5 h-3.5" /> {fmtUSD(d.bills)}</div> : null}
                 </div>
+                 {alertDates.has(d.date) && (
+                    <Link href="/alerts" className="absolute bottom-1 right-1 text-amber-500 hover:text-amber-600" aria-label="View alerts for this day">
+                        <TriangleAlert className="w-4 h-4" />
+                    </Link>
+                )}
               </button>
             ) : <div key={`empty-${i}`} className={cn(isWeekend(days[i]?.date) ? 'bg-muted/30' : 'bg-card')}>{d}</div>
            )}
