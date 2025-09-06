@@ -1,131 +1,83 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { collection, getDocs, query, where, writeBatch, doc } from 'firebase/firestore'
+import { useEffect, useMemo, useState } from 'react'
+import { collection, doc, getDocs, query, serverTimestamp, where, writeBatch } from 'firebase/firestore'
 import { db } from '@/lib/firebase.client'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { type Debt, type BNPL } from '@/domain/debt-planner.schema'
+import { simulatePayoff } from '@/domain/debt-planner'
+import { simulateMinOnly, summarizeRun } from '@/domain/debt-planner.baseline'
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
+import { findMonthlyMatches } from './reconcile'
+import * as Sentry from '@sentry/nextjs'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import AppSidebar from '@/components/app-sidebar'
 import { SidebarInset } from '@/components/ui/sidebar'
 import AppHeader from '@/components/app-header'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table'
-import { type Debt, type BNPL } from '@/domain/debt-planner.schema'
-import { simulatePayoff, type MonthSchedule } from '@/domain/debt-planner'
-import { fmtUSD } from '@/lib/money'
-import { format } from 'date-fns'
 import { nanoid } from 'nanoid'
 
+const fmtUSD = (cents: number) => (cents/100).toLocaleString(undefined, { style: 'currency', currency: 'USD' })
 
 export default function PlannerClient() {
-  const [loading, setLoading] = useState(true)
+  const uid = 'demo-uid' // TODO: auth
+  const [strategy, setStrategy] = useState<'avalanche'|'snowball'>('avalanche')
+  const [startDate, setStartDate] = useState<string>(new Date().toISOString().slice(0,10))
+  const [extra, setExtra] = useState<number>(40000)
+  const [loading, setLoading] = useState(false)
   const [debts, setDebts] = useState<Debt[]>([])
   const [bnpl, setBnpl] = useState<BNPL[]>([])
-  const [extraDebtBudgetCents, setExtraDebtBudgetCents] = useState(40000)
-  const [strategy, setStrategy] = useState<'avalanche' | 'snowball'>('avalanche')
-  const [schedule, setSchedule] = useState<MonthSchedule[] | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
-  
-  const uid = 'demo-uid' // replace with real auth
+  const [run, setRun] = useState<any[] | null>(null)
+  const [baseline, setBaseline] = useState<any[] | null>(null)
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const debtQ = query(collection(db, 'debts_accounts'), where('userId', '==', uid));
-        const debtSnap = await getDocs(debtQ);
-        const debtData = debtSnap.docs.map(d => ({...d.data(), id: d.id } as Debt));
-        setDebts(debtData);
+  useEffect(() => { (async ()=>{
+    const ds = (await getDocs(query(collection(db,'debts_accounts'), where('userId','==',uid)))).docs.map(d=>({ id:d.id, ...d.data() } as Debt))
+    setDebts(ds)
+    const obs = (await getDocs(query(collection(db,'obligations'), where('userId','==',uid)))).docs.map(d=>({ id:d.id, ...d.data() }))
+    // @ts-ignore
+    setBnpl(obs.filter(o=>o.kind==='bnpl').map(o=>({ id:o.id, name:o.name, installmentCents:o.installmentCents ?? o.amountCents, remainingInstallments:o.remainingInstallments ?? 0 })))
+  })() }, [uid])
 
-        // Assuming no BNPL for now
-        setBnpl([]);
-        
-      } catch (error) {
-        console.error("Error fetching debt data:", error);
-      }
-      setLoading(false);
-    })();
-  }, [uid]);
-
-  function handleRunSimulation() {
-    if (!debts.length) return
-    const plan = {
-      strategy,
-      startDate: format(new Date(), 'yyyy-MM-dd'),
-      extraDebtBudgetCents,
-      assumptions: { dayOfMonth: 15 }
-    }
-    const result = simulatePayoff({ debts, bnpl, plan });
-    setSchedule(result);
-  }
-  
-  async function handleSaveRun() {
-    if (!schedule) return;
-    setIsSaving(true);
+  async function recompute() {
+    setLoading(true)
+    Sentry.addBreadcrumb({ category:'planner', message:'recompute', level:'info', data:{ strategy, startDate, extra } })
     try {
-        const batch = writeBatch(db);
-
-        const planId = nanoid();
-        const planRef = doc(db, "payoff_plans", planId);
-        batch.set(planRef, {
-            userId: uid,
-            name: `${strategy.charAt(0).toUpperCase() + strategy.slice(1)} ${format(new Date(), 'MMM yyyy')}`,
-            strategy,
-            startDate: format(new Date(), 'yyyy-MM-dd'),
-            extraDebtBudgetCents,
-            assumptions: { interestModel: 'monthly', applyOrder: 'mins->bnpl->strategy', dayOfMonth: 15 },
-            schemaVersion: 2,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        });
-
-        const runId = nanoid();
-        const runRef = doc(db, "payoff_plans_runs", runId);
-        const totalInterestCents = schedule.reduce((sum, month) => sum + month.totals.interestCents, 0);
-        const totalPaidCents = schedule.reduce((sum, month) => sum + month.totals.paidCents, 0);
-        
-        batch.set(runRef, {
-            planId,
-            userId: uid,
-            planVersion: 1,
-            inputsHash: "dummy-hash", // TODO: Implement hashing
-            period: { from: schedule[0].ym, to: schedule[schedule.length - 1].ym },
-            summary: {
-                months: schedule.length,
-                totalPaidCents,
-                totalInterestCents,
-                interestSavedVsMinOnlyCents: 0, // TODO
-                accounts: debts.map(d => ({ accountId: d.id, payoffDate: "..." })) // TODO
-            },
-            schemaVersion: 2,
-            createdAt: new Date(),
-        });
-        
-        for (const month of schedule) {
-            const scheduleRef = doc(db, `payoff_plans_runs/${runId}/schedule`, month.ym);
-            batch.set(scheduleRef, {
-                userId: uid,
-                ym: month.ym,
-                line: month.line,
-                bnpl: month.bnpl,
-                schemaVersion: 2,
-            });
-        }
-
-        await batch.commit();
-        alert('Plan saved!');
-
-    } catch (error) {
-        console.error("Error saving plan:", error);
-        alert('Failed to save plan.');
-    } finally {
-        setIsSaving(false);
-    }
+      const plan = { strategy, startDate, extraDebtBudgetCents: extra, assumptions: { interestModel:'monthly', dayOfMonth: 15 } }
+      // @ts-ignore
+      const r = simulatePayoff({ debts, bnpl, plan })
+      // @ts-ignore
+      const b = simulateMinOnly({ debts, bnpl, plan })
+      setRun(r); setBaseline(b)
+    } finally { setLoading(false) }
   }
 
+  useEffect(() => { recompute() }, [strategy, startDate, extra, debts.length, bnpl.length])
+
+  const summary = useMemo(() => run ? summarizeRun(run) : null, [run])
+  const baseSummary = useMemo(() => baseline ? summarizeRun(baseline) : null, [baseline])
+  const saved = useMemo(() => (summary && baseSummary) ? (baseSummary.totalInterestCents - summary.totalInterestCents) : 0, [summary, baseSummary])
+
+  const balanceSeries = useMemo(() => {
+    if (!run) return []
+    // compute total end-of-month balances per ym
+    return run.map(m => ({ ym: m.ym, balance: m.line.reduce((a: number, L: any)=> a + L.endBalanceCents, 0) }))
+  }, [run])
+
+  async function onSave() {
+    if (!run || !summary) return
+    Sentry.addBreadcrumb({ category:'planner', message:'saveRun', level:'info' });
+    const planRef = doc(collection(db,'payoff_plans'), nanoid())
+    const runRef = doc(collection(db,'payoff_plans_runs'), nanoid())
+    const batch = writeBatch(db)
+    batch.set(planRef, { userId: uid, name:`${strategy} ${startDate}`, strategy, startDate, extraDebtBudgetCents: extra, assumptions:{ interestModel:'monthly', applyOrder:'mins->bnpl->strategy', dayOfMonth: 15 }, schemaVersion: 2, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
+    batch.set(runRef, { planId: planRef.id, userId: uid, planVersion: 1, inputsHash: 'TODO-hash', period: { from: run[0].ym+'-01', to: run[run.length-1].ym+'-01' }, summary: { months: summary.months, totalPaidCents: summary.totalPaidCents, totalInterestCents: summary.totalInterestCents, interestSavedVsMinOnlyCents: saved, accounts: Object.entries(summary.payoffDates).map(([accountId, payoffDate])=>({ accountId, payoffDate })) }, schemaVersion: 2, createdAt: serverTimestamp() })
+    for (const m of run) {
+      const schedRef = doc(collection(db,`payoff_plans_runs/${runRef.id}/schedule`), m.ym)
+      batch.set(schedRef, { userId: uid, ym: m.ym, line: m.line, bnpl: m.bnpl, schemaVersion: 2 })
+    }
+    await batch.commit(); alert('Plan saved')
+  }
 
   return (
     <SidebarProvider>
@@ -133,82 +85,109 @@ export default function PlannerClient() {
       <SidebarInset>
         <AppHeader />
         <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-          <Card>
+        <Card>
             <CardHeader>
               <CardTitle className="font-headline">Debt Payoff Planner</CardTitle>
               <CardDescription>Simulate and plan your debt-free journey.</CardDescription>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="space-y-4">
-                    <Skeleton className="h-8 w-1/4" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-8 w-1/4" />
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-10 w-1/3 mt-2" />
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Strategy</label>
+                  <select className="w-full border rounded h-9 px-2 bg-background" value={strategy} onChange={e=>setStrategy(e.target.value as any)}>
+                    <option value="avalanche">Avalanche (highest APR)</option>
+                    <option value="snowball">Snowball (lowest balance)</option>
+                  </select>
                 </div>
-              ) : (
-                <div className="space-y-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="extra-budget">Extra Monthly Payment</Label>
-                        <Input id="extra-budget" type="number" value={extraDebtBudgetCents/100} onChange={e => setExtraDebtBudgetCents(Number(e.target.value) * 100)} placeholder="400" />
-                        <p className="text-sm text-muted-foreground">Amount you can pay towards debt beyond minimum payments.</p>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Payoff Strategy</Label>
-                         <RadioGroup defaultValue="avalanche" onValueChange={(v: 'avalanche' | 'snowball') => setStrategy(v)} className="flex gap-4">
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="avalanche" id="avalanche" />
-                                <Label htmlFor="avalanche">Avalanche (highest interest first)</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="snowball" id="snowball" />
-                                <Label htmlFor="snowball">Snowball (smallest balance first)</Label>
-                            </div>
-                        </RadioGroup>
-                    </div>
-                    
-                    <Button onClick={handleRunSimulation} disabled={!debts.length}>Run Simulation</Button>
-
-                    {schedule && (
-                        <div className="space-y-4 pt-4">
-                            <div className="flex justify-between items-center">
-                                <h3 className="text-xl font-semibold font-headline">Payoff Schedule</h3>
-                                <Button onClick={handleSaveRun} disabled={isSaving}>
-                                    {isSaving ? 'Saving...' : 'Save Plan'}
-                                </Button>
-                            </div>
-                            <Card className="max-h-[500px] overflow-auto">
-                                <Table>
-                                  <TableCaption>A month-by-month projection of your debt payoff.</TableCaption>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead className="w-[100px]">Month</TableHead>
-                                      {debts.map(d => <TableHead key={d.id}>{d.name}</TableHead>)}
-                                       <TableHead className="text-right">Total Paid</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {schedule.map((month) => (
-                                      <TableRow key={month.ym}>
-                                        <TableCell className="font-medium">{month.ym}</TableCell>
-                                        {debts.map(debt => {
-                                            const line = month.line.find(l => l.accountId === debt.id);
-                                            return <TableCell key={debt.id}>{line ? fmtUSD(line.endBalanceCents) : 'Paid off'}</TableCell>
-                                        })}
-                                        <TableCell className="text-right">{fmtUSD(month.totals.paidCents)}</TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                            </Card>
-                        </div>
-                    )}
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Start date</label>
+                  <Input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} />
                 </div>
-              )}
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Extra budget ($/mo)</label>
+                  <Input type="number" value={extra/100} onChange={e=>setExtra(parseInt(e.target.value||'0',10) * 100)} />
+                </div>
+                <Button onClick={recompute} disabled={loading}>{loading ? 'Running…' : 'Recompute'}</Button>
+              </div>
             </CardContent>
           </Card>
+      
+      {summary && baseSummary && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline">Forecast Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            <div><span className="text-muted-foreground">Payoff Months:</span> <span className="font-medium">{summary.months}</span></div>
+            <div><span className="text-muted-foreground">Total Interest (Plan):</span> <span className="font-medium">{fmtUSD(summary.totalInterestCents)}</span></div>
+            <div><span className="text-muted-foreground">Total Interest (Min-Only):</span> <span className="font-medium">{fmtUSD(baseSummary.totalInterestCents)}</span></div>
+            <div><span className="text-muted-foreground">Interest Saved:</span> <span className="font-medium text-green-700 dark:text-green-400">{fmtUSD(saved)}</span></div>
+          </div>
+          <div className="h-64">
+            <ResponsiveContainer>
+              <LineChart data={balanceSeries}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="ym" minTickGap={24} fontSize={12} />
+                <YAxis tickFormatter={(v)=>fmtUSD(v)} fontSize={12} />
+                <Tooltip formatter={(v:any)=>fmtUSD(Number(v))} labelFormatter={(l)=>l} />
+                <Legend />
+                <Line type="monotone" dataKey="balance" name="Remaining Debt Balance" dot={false} stroke="hsl(var(--primary))" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div><Button onClick={onSave}>Save Run</Button></div>
+          </CardContent>
+        </Card>
+      )}
+
+      {run && (
+        <Tabs defaultValue="schedule">
+          <TabsList>
+            <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            <TabsTrigger value="accounts">Payoff Dates</TabsTrigger>
+          </TabsList>
+          <TabsContent value="schedule">
+            <Card className="p-4 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr><th className="text-left p-2">Month</th><th className="text-left p-2">Account</th><th className="text-right p-2">Min</th><th className="text-right p-2">Extra</th><th className="text-right p-2">Interest</th><th className="text-right p-2">Principal</th><th className="text-right p-2">End Balance</th><th className="text-left p-2">Recon</th></tr></thead>
+                <tbody>
+                  {run.slice(0,12).flatMap((m: any, idx: number) => m.line.map((L: any, i: number) => (
+                    <tr key={`${m.ym}-${L.accountId}`} className="border-t">
+                      {i === 0 && <td className="p-2" rowSpan={m.line.length}>{m.ym}</td>}
+                      <td className="p-2">{debts.find(d => d.id === L.accountId)?.name}</td>
+                      <td className="p-2 text-right">{fmtUSD(L.minCents)}</td>
+                      <td className="p-2 text-right">{fmtUSD(L.extraCents)}</td>
+                      <td className="p-2 text-right text-destructive">{fmtUSD(L.interestCents)}</td>
+                      <td className="p-2 text-right text-primary">{fmtUSD(L.principalCents)}</td>
+                      <td className="p-2 text-right font-medium">{fmtUSD(L.endBalanceCents)}</td>
+                      <td className="p-2">
+                        <button className="underline text-xs" onClick={async ()=>{
+                          const amount = L.minCents + L.extraCents
+                          const matches = await findMonthlyMatches({ userId: uid, accountId: L.accountId, ym: m.ym, amountCents: amount })
+                          if (matches.length) alert(`Matched ${matches[0].id}`); else alert('No match in transactions')
+                        }}>match</button>
+                      </td>
+                    </tr>
+                  )))}
+                </tbody>
+              </table>
+            </Card>
+          </TabsContent>
+          <TabsContent value="accounts">
+            <Card className="p-4">
+              <table className="w-full text-sm">
+                <thead><tr><th className="text-left p-2">Account</th><th className="text-left p-2">Payoff Date</th></tr></thead>
+                <tbody>
+                  {summary && Object.entries(summary.payoffDates).map(([id, date]) => (
+                    <tr key={id} className="border-t"><td className="p-2">{debts.find(d => d.id === id)?.name}</td><td className="p-2">{date as string}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
         </main>
       </SidebarInset>
     </SidebarProvider>

@@ -35,13 +35,13 @@ export default function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton href="#">
+            <SidebarMenuButton href="/paycheck">
               <Wallet />
-              <span>Budget</span>
+              <span>Paycheck</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
            <SidebarMenuItem>
-            <SidebarMenuButton href="/planner" isActive>
+            <SidebarMenuButton href="/planner" >
               <PiggyBank />
               <span>Debt Planner</span>
             </SidebarMenuButton>
@@ -53,9 +53,9 @@ export default function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton href="#">
+            <SidebarMenuButton href="/transactions">
               <Target />
-              <span>Goals</span>
+              <span>Transactions</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
