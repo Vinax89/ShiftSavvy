@@ -1,3 +1,4 @@
+
 import { ZPaySchedule } from './pay-schedule.schema'
 import dayjs from 'dayjs'
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'
@@ -38,5 +39,3 @@ export function periodBounds(ps: unknown, paydayYMD: string): { start: string, e
   const end = paydayYMD
   return { start, end }
 }
-
-    

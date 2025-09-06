@@ -1,10 +1,16 @@
+
 import { ZPaySchedule, type PaySchedule } from './pay-schedule.schema'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
+
 
 dayjs.extend(utc)
 dayjs.extend(timezone)
+dayjs.extend(isSameOrBefore)
+dayjs.extend(isSameOrAfter)
 
 
 export type CFEvent = { date: string, kind: 'pay'|'obligation', label: string, amountCents: number, balanceCents: number }
@@ -15,25 +21,36 @@ export function enumeratePaydays(ps: unknown, fromYMD: string, toYMD: string): s
   const from = dayjs.tz(fromYMD, p.timezone)
   const to = dayjs.tz(toYMD, p.timezone)
   const dates: string[] = []
+  
   if (p.kind === 'weekly' || p.kind === 'biweekly') {
     const step = p.kind === 'weekly' ? 7 : 14
     let d = dayjs.tz(p.anchor, p.timezone)
     while (d.isBefore(from)) d = d.add(step, 'day')
-    for (; !d.isAfter(to); d = d.add(step, 'day')) dates.push(d.format('YYYY-MM-DD'))
+    for (; d.isSameOrBefore(to); d = d.add(step, 'day')) {
+        if(d.isSameOrAfter(from)) dates.push(d.format('YYYY-MM-DD'))
+    }
   } else if (p.kind === 'semimonthly' && p.days?.length) {
     let d = from.startOf('month')
-    for (let cur = d; !cur.isAfter(to); cur = cur.add(1,'month')) {
-      for (const dd of p.days) if (cur.date(dd).isBefore(to) && cur.date(dd).isAfter(from.subtract(1,'day'))) dates.push(cur.date(dd).format('YYYY-MM-DD'))
+    for (let cur = d; cur.isSameOrBefore(to); cur = cur.add(1,'month')) {
+      for (const dd of p.days) {
+          const payday = cur.date(dd)
+          if (payday.isSameOrBefore(to) && payday.isSameOrAfter(from)) {
+            dates.push(payday.format('YYYY-MM-DD'))
+          }
+      }
     }
   } else if (p.kind === 'monthly' && p.day) {
-    const d = from.startOf('month')
-    for (let cur = d; !cur.isAfter(to); cur = cur.add(1,'month')) {
+    let d = from.startOf('month')
+    for (let cur = d; cur.isSameOrBefore(to); cur = cur.add(1,'month')) {
       const last = cur.daysInMonth()
       const day = Math.min(p.day, last)
-      if (cur.date(day).isBefore(to) && cur.date(day).isAfter(from.subtract(1,'day'))) dates.push(cur.date(day).format('YYYY-MM-DD'))
+      const payday = cur.date(day)
+       if (payday.isSameOrBefore(to) && payday.isSameOrAfter(from)) {
+          dates.push(payday.format('YYYY-MM-DD'))
+       }
     }
   }
-  return dates.filter(d => d >= fromYMD && d <= toYMD)
+  return dates.sort();
 }
 
 export async function buildForecast(params: {
@@ -56,8 +73,8 @@ export async function buildForecast(params: {
     if (o.cadence === 'monthly') {
       let cur = dayjs(o.nextDueDate)
       const to = dayjs(params.to)
-      while (!cur.isAfter(to)) {
-        if (cur.format('YYYY-MM-DD') >= params.from) events.push({ date: cur.format('YYYY-MM-DD'), kind: 'obligation', label: o.name, amountCents: -Math.abs(o.amountCents) })
+      while (cur.isSameOrBefore(to)) {
+        if (cur.isSameOrAfter(params.from)) events.push({ date: cur.format('YYYY-MM-DD'), kind: 'obligation', label: o.name, amountCents: -Math.abs(o.amountCents) })
         cur = cur.add(1,'month')
       }
     }
@@ -66,18 +83,34 @@ export async function buildForecast(params: {
   
   let bal = params.bufferCents
   let minBal = bal
-  let shortfallDays = 0
   
   const finalEvents: CFEvent[] = []
 
-  for (const e of events) {
-    bal += e.amountCents
-    if (bal < 0) shortfallDays++
-    if (bal < minBal) minBal = bal
-    finalEvents.push({...e, balanceCents: bal})
+  // Create a map of events by date
+  const dateMap = new Map<string, { date: string, kind: 'pay'|'obligation', label: string, amountCents: number }[]>();
+  for(const e of events) {
+    if(!dateMap.has(e.date)) dateMap.set(e.date, []);
+    dateMap.get(e.date)!.push(e);
   }
+
+  // Iterate day by day to calculate running balance
+  const start = dayjs(params.from);
+  const end = dayjs(params.to);
+  for(let d = start; d.isSameOrBefore(end); d = d.add(1, 'day')) {
+    const ymd = d.format('YYYY-MM-DD');
+    if(dateMap.has(ymd)) {
+      for(const e of dateMap.get(ymd)!) {
+        bal += e.amountCents;
+        finalEvents.push({...e, balanceCents: bal});
+      }
+    }
+    if (bal < minBal) minBal = bal;
+  }
+  
+  // Calculate shortfall days
+  const dailyBalances = toDailySeries(finalEvents, params.from, params.to, params.bufferCents);
+  const shortfallDays = dailyBalances.filter(d => d.balanceCents < 0).length;
+
 
   return { events: finalEvents, summary: { minBalanceCents: minBal, shortfallDays } }
 }
-
-    

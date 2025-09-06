@@ -1,3 +1,4 @@
+
 'use client'
 import { collection, getDocs, orderBy, query, where, limit } from 'firebase/firestore'
 import { db } from '@/lib/firebase.client'
@@ -22,7 +23,9 @@ export async function getNetForPayday(opts: { userId: string, paydayYMD: string,
     return x.periodStart <= paydayYMD && paydayYMD <= x.periodEnd
   })?.data()
   
-  if (saved?.result?.netCents != null) return saved.result.netCents
+  if (saved?.result?.netCents != null) {
+    return saved.result.netCents
+  }
 
   // 2) Fallback: recompute from shifts in the pay period
   const { start, end } = periodBounds(schedule, paydayYMD)
@@ -44,5 +47,3 @@ export async function getNetForPayday(opts: { userId: string, paydayYMD: string,
   const r = evaluatePaycheck({ shifts, policy, tax, ytd })
   return r.netCents
 }
-
-    

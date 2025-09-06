@@ -1,3 +1,4 @@
+
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 import { collection, doc, getDocs, query, serverTimestamp, where, writeBatch } from 'firebase/firestore'
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { type Debt, type BNPL } from '@/domain/debt-planner.schema'
+import { type Debt, type BNPL, type Plan } from '@/domain/debt-planner.schema'
 import { simulatePayoff } from '@/domain/debt-planner'
 import { simulateMinOnly, summarizeRun } from '@/domain/debt-planner.baseline'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
@@ -17,11 +18,13 @@ import AppSidebar from '@/components/app-sidebar'
 import { SidebarInset } from '@/components/ui/sidebar'
 import AppHeader from '@/components/app-header'
 import { nanoid } from 'nanoid'
+import { useToast } from '@/hooks/use-toast'
 
 const fmtUSD = (cents: number) => (cents/100).toLocaleString(undefined, { style: 'currency', currency: 'USD' })
 
 export default function PlannerClient() {
   const uid = 'demo-uid' // TODO: auth
+  const { toast } = useToast()
   const [strategy, setStrategy] = useState<'avalanche'|'snowball'>('avalanche')
   const [startDate, setStartDate] = useState<string>(new Date().toISOString().slice(0,10))
   const [extra, setExtra] = useState<number>(40000)
@@ -46,7 +49,7 @@ export default function PlannerClient() {
     setLoading(true)
     Sentry.addBreadcrumb({ category:'planner', message:'recompute', level:'info', data:{ strategy, startDate, extra } })
     try {
-      const plan = { strategy, startDate, extraDebtBudgetCents: extra, assumptions: { interestModel:'monthly', dayOfMonth: 15 } }
+      const plan: Plan = { strategy, startDate, extraDebtBudgetCents: extra, assumptions: { interestModel:'monthly', dayOfMonth: 15 } }
       // @ts-ignore
       const r = simulatePayoff({ debts, bnpl, plan, overrides })
       // @ts-ignore
@@ -79,7 +82,8 @@ export default function PlannerClient() {
       const schedRef = doc(collection(db,`payoff_plans_runs/${runRef.id}/schedule`), m.ym)
       batch.set(schedRef, { userId: uid, ym: m.ym, line: m.line, bnpl: m.bnpl, schemaVersion: 2 })
     }
-    await batch.commit(); alert('Plan saved')
+    await batch.commit();
+    toast({ title:'Plan saved', description:`${summary.months} months, ${fmtUSD(summary.totalInterestCents)} interest` });
   }
 
   return (
@@ -196,5 +200,3 @@ export default function PlannerClient() {
     </SidebarProvider>
   )
 }
-
-    

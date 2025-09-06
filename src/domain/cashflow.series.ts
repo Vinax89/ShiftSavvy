@@ -1,3 +1,4 @@
+
 import type { CFEvent } from './cashflow'
 
 export function toDailySeries(events: CFEvent[], fromYMD: string, toYMD: string, startingBalanceCents: number) {
@@ -20,5 +21,3 @@ export function toDailySeries(events: CFEvent[], fromYMD: string, toYMD: string,
   }
   return days
 }
-
-    
