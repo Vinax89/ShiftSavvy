@@ -1,5 +1,9 @@
 import type { NextConfig } from 'next'
 
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const ORIGIN = process.env.STUDIO_ORIGIN || ''
 
 const nextConfig: NextConfig = {
@@ -27,4 +31,4 @@ const nextConfig: NextConfig = {
   experimental: {},
 }
 
-export default nextConfig
+export default withBundleAnalyzer(nextConfig)
