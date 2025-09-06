@@ -81,7 +81,8 @@ export default function PlannerClient() {
   }
 
   useEffect(() => {
-    queueMicrotask(recompute);
+    const id = setTimeout(recompute, 120)
+    return () => clearTimeout(id)
   }, [strategy, startDate, extra, debts.length, bnpl.length, overrides])
 
   const summary = useMemo(() => run ? summarizeRun(run) : null, [run])
