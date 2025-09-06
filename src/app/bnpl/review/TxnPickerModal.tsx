@@ -1,21 +1,13 @@
 
-'use client'
+'use_client'
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { auth } from '@/lib/firebase.client'
+import { apiFetch } from '@/lib/api.client'
 
 
 type Candidate = { id: string; date: string; amountCents: number; memo?: string; merchant?: string; confidence: number }
-
-async function getAuthHeaders(): Promise<HeadersInit> {
-    const user = auth.currentUser
-    if (!user) return {}
-    const token = await user.getIdToken()
-    return { Authorization: `Bearer ${token}` }
-}
-
 
 export default function TxnPickerModal({
   open, onClose, dueDate, amountCents, merchant, onPick
@@ -45,9 +37,7 @@ export default function TxnPickerModal({
           merchant: merchant || '',
           limit: '10',
         }).toString()
-        const headers = await getAuthHeaders();
-        const res = await fetch(`/api/transactions/candidates?${q}`, { headers })
-        const j = await res.json()
+        const j = await apiFetch(`/api/transactions/candidates?${q}`, { requireAuth: true })
         if (j.ok) setItems(j.candidates || [])
       } finally {
         setLoading(false)
