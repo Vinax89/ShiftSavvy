@@ -4,6 +4,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 const PLANS_PATH = (uid: string) => `users/${uid}/bnpl/contracts`;    // <— current
 const EVENTS_PATH = (uid: string) => `users/${uid}/bnpl/events`;      // <— new
+const DUAL_WRITE = process.env.BNPL_DUAL_WRITE !== 'false' // default true
 
 export type Plan = {
   id: string;
@@ -31,31 +32,23 @@ export async function upsertPlan(uid: string, plan: Plan) {
 }
 
 export async function linkTxn(uid: string, planId: string, txnId: string, role: 'principal'|'installment') {
-  const planRef = db.collection(PLANS_PATH(uid)).doc(planId);
-  const txnRefNested = db.collection(`users/${uid}/transactions`).doc(txnId);
-  const txnRefTop = db.collection(`transactions`).doc(txnId);
-
-  const batch = db.batch();
-  batch.set(txnRefNested, { bnpl: { planId, role } }, { merge: true });
-  batch.set(txnRefTop, { bnpl: { planId, role } }, { merge: true }); // tolerate existing top-level schema
-  await batch.commit();
-
-  await logEvent(uid, {
-    type: 'linkPayment',
-    planId,
-    txnId,
-    at: FieldValue.serverTimestamp(),
-  });
+  const nested = db.collection(`users/${uid}/transactions`).doc(txnId)
+  const legacy = db.collection(`transactions`).doc(txnId)
+  const batch = db.batch()
+  batch.set(nested, { bnpl: { planId, role } }, { merge: true })
+  if (DUAL_WRITE) batch.set(legacy, { bnpl: { planId, role }, userId: uid }, { merge: true })
+  await batch.commit()
+  await logEvent(uid, { type:'linkPayment', planId, txnId, at: FieldValue.serverTimestamp() })
 }
 
 export async function unlinkTxn(uid: string, planId: string, txnId: string) {
-  const txnRefNested = db.collection(`users/${uid}/transactions`).doc(txnId);
-  const txnRefTop = db.collection(`transactions`).doc(txnId);
-  const batch = db.batch();
-  batch.set(txnRefNested, { bnpl: FieldValue.delete() }, { merge: true });
-  batch.set(txnRefTop, { bnpl: FieldValue.delete() }, { merge: true });
-  await batch.commit();
-  await logEvent(uid, { type: 'unlinkPayment', planId, txnId, at: FieldValue.serverTimestamp() });
+  const nested = db.collection(`users/${uid}/transactions`).doc(txnId)
+  const legacy = db.collection(`transactions`).doc(txnId)
+  const batch = db.batch()
+  batch.set(nested, { bnpl: FieldValue.delete() }, { merge: true })
+  if (DUAL_WRITE) batch.set(legacy, { bnpl: FieldValue.delete() }, { merge: true })
+  await batch.commit()
+  await logEvent(uid, { type:'unlinkPayment', planId, txnId, at: FieldValue.serverTimestamp() })
 }
 
 export async function closePlan(uid: string, planId: string) {
