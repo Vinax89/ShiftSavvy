@@ -24,6 +24,11 @@ export default function PaycheckClient() {
   const [policy, setPolicy] = useState<any>(null)
   const [ytd, setYtd] = useState<any>(null)
   const [recent, setRecent] = useState<any[]>([])
+  const [currentDate, setCurrentDate] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCurrentDate(Date.now());
+  }, []);
 
   const uid = 'demo-uid' // replace with real auth
 
@@ -129,7 +134,7 @@ export default function PaycheckClient() {
                     <ul className="space-y-2 text-sm">
                         {recent.map(r => (
                           <li key={r.id} className="flex justify-between items-center p-2 rounded-md hover:bg-muted">
-                            <span>Saved on {new Date(r.createdAt?.seconds*1000 ?? Date.now()).toLocaleString()}</span>
+                            <span>Saved on {new Date(r.createdAt?.seconds*1000 ?? currentDate ?? 0).toLocaleString()}</span>
                             <span className="font-medium">{fmtUSD(r.result.netCents)}</span>
                           </li>
                         ))}
