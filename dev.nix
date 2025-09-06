@@ -1,9 +1,8 @@
 { pkgs ? import <nixpkgs> { } }:
 
 pkgs.mkShell {
-  nativeBuildInputs = with pkgs; [
-    # …your existing tools
-    nodejs_18
-    corepack_18
+  packages = with pkgs; [
+    nodejs_22
+    corepack_22
   ];
 }
