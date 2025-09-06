@@ -7,7 +7,7 @@ export function toDailySeries(events: CFEvent[], fromYMD: string, toYMD: string,
   for (const e of events) {
     const m = toMap.get(e.date) || { pay:0, bills:0 }
     if (e.kind === 'pay') m.pay += e.amountCents
-    else m.bills += e.amountCents
+    else m.bills -= e.amountCents
     toMap.set(e.date, m)
   }
   let bal = startingBalanceCents
