@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { getOvertimeAlert } from '@/lib/actions';
-import { type OvertimeAlertOutput } from '@/ai/flows/overtime-alert';
+import { getOvertimeAlert } from '@/lib/actions.server';
+import { type OvertimeAlertOutput } from '@/ai/flows/overtime-alert.server';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,

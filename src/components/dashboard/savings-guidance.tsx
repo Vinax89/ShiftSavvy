@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { getSavingsGuidance } from '@/lib/actions';
-import { type SavingsTargetGuidanceOutput } from '@/ai/flows/savings-target-guidance';
+import { getSavingsGuidance } from '@/lib/actions.server';
+import { type SavingsTargetGuidanceOutput } from '@/ai/flows/savings-target-guidance.server';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
