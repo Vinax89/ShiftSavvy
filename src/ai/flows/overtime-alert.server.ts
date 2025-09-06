@@ -8,8 +8,7 @@
  * - OvertimeAlertOutput - The return type for the overtimeAlert function.
  */
 
-import {ai} from '@/ai/genkit.server';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const OvertimeAlertInputSchema = z.object({
   workSchedule: z.string().describe('The user s work schedule in plain text.'),
@@ -24,33 +23,34 @@ const OvertimeAlertOutputSchema = z.object({
 export type OvertimeAlertOutput = z.infer<typeof OvertimeAlertOutputSchema>;
 
 export async function overtimeAlert(input: OvertimeAlertInput): Promise<OvertimeAlertOutput> {
-  return overtimeAlertFlow(input);
+    const { ai } = await import('@/ai/genkit.server');
+    const prompt = ai.definePrompt({
+        name: 'overtimeAlertPrompt',
+        input: {schema: OvertimeAlertInputSchema},
+        output: {schema: OvertimeAlertOutputSchema},
+        prompt: `You are a helpful assistant designed to gently warn users about potential overwork and burnout.
+
+        Given the user's work schedule and the details of a potential new shift, provide a personalized warning message.
+        Be empathetic and understanding, and focus on the user's well-being.
+
+        User Name: {{{userName}}}
+        Work Schedule: {{{workSchedule}}}
+        Shift Details: {{{shiftDetails}}}
+
+        Craft a message that is both informative and supportive, encouraging the user to prioritize their health and avoid overexertion.`,
+    });
+
+    const overtimeAlertFlow = ai.defineFlow(
+    {
+        name: 'overtimeAlertFlow',
+        inputSchema: OvertimeAlertInputSchema,
+        outputSchema: OvertimeAlertOutputSchema,
+    },
+    async input => {
+        const {output} = await prompt(input);
+        return output!;
+    }
+    );
+
+    return overtimeAlertFlow(input);
 }
-
-const prompt = ai.definePrompt({
-  name: 'overtimeAlertPrompt',
-  input: {schema: OvertimeAlertInputSchema},
-  output: {schema: OvertimeAlertOutputSchema},
-  prompt: `You are a helpful assistant designed to gently warn users about potential overwork and burnout.
-
-  Given the user's work schedule and the details of a potential new shift, provide a personalized warning message.
-  Be empathetic and understanding, and focus on the user's well-being.
-
-  User Name: {{{userName}}}
-  Work Schedule: {{{workSchedule}}}
-  Shift Details: {{{shiftDetails}}}
-
-  Craft a message that is both informative and supportive, encouraging the user to prioritize their health and avoid overexertion.`,
-});
-
-const overtimeAlertFlow = ai.defineFlow(
-  {
-    name: 'overtimeAlertFlow',
-    inputSchema: OvertimeAlertInputSchema,
-    outputSchema: OvertimeAlertOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
-  }
-);
