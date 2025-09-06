@@ -48,15 +48,26 @@ export const api_transactions_exportCsv = onRequest({ region: 'us-central1', cor
     if (to) q = q.where('postedDate','<=', to)
 
     const wantsGzip = /\bgzip\b/i.test(String(req.headers['accept-encoding'] || '')) || req.query.gzip === '1'
-    const write = (chunk: string) => wantsGzip ? gz.write(chunk) : res.write(chunk)
-    const end = () => wantsGzip ? gz!.end() : res.end()
-
+    
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
     if (wantsGzip) res.setHeader('Content-Encoding', 'gzip')
     res.setHeader('Content-Disposition', `attachment; filename="transactions-${uid}-${Date.now()}.csv"`)
 
     const gz = wantsGzip ? createGzip() : null
     if (gz) gz.pipe(res)
+    
+    const write = (chunk: string) => {
+      if (wantsGzip && gz) return gz.write(chunk);
+      return res.write(chunk);
+    };
+    const end = () => {
+      if (wantsGzip && gz) {
+        gz.end();
+      } else {
+        res.end();
+      }
+    };
+
 
     write('id,postedDate,description,amountCents,currency,accountId,possibleDuplicateOf,src.kind,src.externalId\n')
 

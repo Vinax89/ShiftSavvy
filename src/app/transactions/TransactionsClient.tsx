@@ -33,7 +33,7 @@ async function exportServer({ account, from, to }: { account?: string; from?: st
       alert("Authentication required to export.");
       return;
   }
-  const u = new URL('/api/transactions/export.csv', location.origin)
+  const u = new URL('/api/transactions.exportCsv', location.origin)
   if (account) u.searchParams.set('accountId', account)
   if (from) u.searchParams.set('from', from)
   if (to) u.searchParams.set('to', to)

@@ -3,12 +3,21 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import * as admin from "firebase-admin";
+import * as functions from 'firebase-functions';
 import * as sg from "@sendgrid/mail";
 
 if (!admin.apps.length) {
     admin.initializeApp();
 }
 const db = getFirestore();
+
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
+if (SENDGRID_API_KEY) {
+  sg.setApiKey(SENDGRID_API_KEY);
+} else {
+  console.warn('[alerts] SENDGRID_API_KEY not set — email alerts will be no-ops.');
+}
+
 
 type Settings = {
   timezone?: string;
@@ -161,7 +170,7 @@ async function upsertAlert(a: Omit<AlertDoc, 'state' | 'createdAt' | 'hash'>) {
   await ref.set(payload);
 }
 
-async function runForUser(uid: string) {
+export async function runForUser(uid: string) {
   const now = new Date();
   const todayMs = startOfUTCDay(now.getTime());
   const endMs = startOfUTCDay(now.getTime() + WINDOW_DAYS * 86400000);
@@ -245,32 +254,37 @@ async function runForUser(uid: string) {
       .orderBy("createdAt", "desc").limit(20).get();
 
     if (!openAlerts.empty) {
-      await sendEmail(email, `ShiftSavvy Alerts`, openAlerts.docs.map(d => d.data() as AlertDoc));
+       const html = `
+        <div style="font-family:system-ui">
+          <h2>ShiftSavvy — New Alerts</h2>
+          <ul>
+            ${openAlerts.docs.map(d => d.data() as AlertDoc).map(a => `<li><b>${a.title}</b><br/>${a.body}</li>`).join("")}
+          </ul>
+          <p>You can disable emails in Settings.</p>
+        </div>
+      `;
+      await sendAlertEmail({ to: email, subject: `ShiftSavvy Alerts`, html });
     }
   }
 }
 
-async function sendEmail(to: string, subject: string, alerts: AlertDoc[]) {
-  const sgKey = process.env.SENDGRID_API_KEY;
-  const from = process.env.SENDGRID_FROM || "alerts@shiftsavvy.local";
-  
-  if (!sgKey) {
-    console.log("SENDGRID_API_KEY not configured; skipping email.");
-    return;
-  }
-  sg.setApiKey(sgKey);
+export async function sendAlertEmail(params: {
+  to: string;
+  subject: string;
+  html: string;
+}) {
+  if (!SENDGRID_API_KEY) return { skipped: true, reason: 'no_api_key' };
 
-  const html = `
-    <div style="font-family:system-ui">
-      <h2>ShiftSavvy — New Alerts</h2>
-      <ul>
-        ${alerts.map(a => `<li><b>${a.title}</b><br/>${a.body}</li>`).join("")}
-      </ul>
-      <p>You can disable emails in Settings.</p>
-    </div>
-  `;
-  await sg.send({ to, from, subject, html });
+  const msg = {
+    to: params.to,
+    from: functions.params.defineString('ALERTS_FROM_EMAIL').value() || 'no-reply@example.com',
+    subject: params.subject,
+    html: params.html,
+  };
+  await sg.send(msg);
+  return { sent: true };
 }
+
 
 // ---- Schedules & Endpoints ----
 const secrets = ["SENDGRID_API_KEY", "SENDGRID_FROM", "SPEC3_TZ"];
