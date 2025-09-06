@@ -1,0 +1,76 @@
+# .github/dependabot.yml
+version: 2
+
+updates:
+  # ── 1) Root app (Next.js + TS)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Vancouver"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase-if-necessary
+    rebase-strategy: auto
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    groups:
+      prod-minor-patch:
+        applies-to: version-updates
+        dependency-type: production
+        update-types: ["minor", "patch"]
+      dev-minor-patch:
+        applies-to: version-updates
+        dependency-type: development
+        update-types: ["minor", "patch"]
+      types-testing:
+        applies-to: version-updates
+        patterns: ["typescript", "vitest", "@vitest/*", "@types/*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      # Review these majors manually to avoid framework/sdk churn
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "firebase"
+        update-types: ["version-update:semver-major"]
+
+  # ── 2) Cloud Functions workspace (Node 20 runtime)
+  - package-ecosystem: "npm"
+    directory: "/functions"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:15"
+      timezone: "America/Vancouver"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase-if-necessary
+    rebase-strategy: auto
+    commit-message:
+      prefix: "deps(functions)"
+      include: "scope"
+    groups:
+      functions-minor-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+    ignore:
+      # Keep majors aligned with Firebase Functions runtime deliberately
+      - dependency-name: "firebase-admin"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "firebase-functions"
+        update-types: ["version-update:semver-major"]
+
+  # ── 3) GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:30"
+      timezone: "America/Vancouver"
+    open-pull-requests-limit: 10
+    groups:
+      actions-minor-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
