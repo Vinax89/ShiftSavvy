@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "seed:demo": "tsx -r dotenv/config src/tools/seed-demo.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:rules": "vitest run tests/rules --reporter=dot"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",
