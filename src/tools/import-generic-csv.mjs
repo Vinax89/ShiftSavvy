@@ -2,7 +2,7 @@
 /**
  * Generic CSV → Firestore importer + BNPL auto-detect
  * Usage:
- *   node src/tools/import-generic-csv.mjs --file ./export.csv --account acct:boa:1234 --user <UID> [--dry] [--bnpl auto|skip]
+ *   node scripts/import-generic-csv.mjs --file ./export.csv --account acct:boa:1234 --user <UID> [--dry] [--bnpl auto|skip]
  *
  * Notes:
  * - Requires `firebase-admin` (npm i -D firebase-admin)
@@ -12,6 +12,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import { reconstructAndPersistBnpl } from '../../scripts/bnpl-reconstruct.mjs';
+
 
 // ---------- tiny arg parser ----------
 const args = Object.fromEntries(
@@ -41,7 +43,8 @@ if (!getApps().length) {
   // If running against emulator, creds aren’t required.
   try {
     initializeApp({ projectId, credential: applicationDefault() })
-  } catch {
+  } catch(e) {
+    console.warn("Initializing without default credentials. This is normal for emulators.", e.message)
     initializeApp({ projectId })
   }
 }
@@ -134,114 +137,6 @@ function stableId({ userId, accountId, postedDate, amountCents, description }) {
   return `tx_${h}`
 }
 
-// ---------- BNPL detection (simple heuristic) ----------
-const BNPL_PROVIDERS = [
-  'afterpay', 'klarna', 'affirm', 'sezzle', 'zip', 'quadpay',
-  'paypal pay in 4', 'pay in 4', 'apple pay later', 'shop pay installments'
-]
-
-function detectBnplGroups(importedTx) {
-  // pick tx whose description contains provider name
-  const hits = importedTx.filter(t => {
-    const d = t.description.toLowerCase()
-    return BNPL_PROVIDERS.some(p => d.includes(p))
-  })
-  // group by (provider + merchant guess + abs(amount))
-  const groups = new Map()
-  for (const t of hits) {
-    const low = t.description.toLowerCase()
-    const provider = BNPL_PROVIDERS.find(p => low.includes(p)) || 'bnpl'
-    // crude merchant extraction: text after provider up to first digits or end
-    let merchant = (t.description.replace(/[*]/g,'').match(new RegExp(`${provider}\\s*[:\\-\\s]*([^\\d]+)`, 'i'))?.[1] || '')
-      .trim().replace(/\s{2,}/g, ' ')
-    merchant = merchant.slice(0, 64) || provider.toUpperCase()
-    const key = `${provider}|${merchant}|${Math.abs(t.amountCents)}`
-    const arr = groups.get(key) || []
-    arr.push(t)
-    groups.set(key, arr)
-  }
-  return groups
-}
-
-function median(ns) {
-  if (!ns.length) return 0
-  const xs = [...ns].sort((a,b)=>a-b)
-  const mid = Math.floor(xs.length/2)
-  return xs.length % 2 ? xs[mid] : (xs[mid-1] + xs[mid]) / 2
-}
-
-function addStep(ymd, cadence) {
-  const d = new Date(ymd+'T00:00:00Z')
-  if (cadence === 'biweekly') d.setDate(d.getDate() + 14)
-  else {
-    const day = d.getUTCDate()
-    const m = d.getUTCMonth()
-    const y = d.getUTCFullYear()
-    const next = new Date(Date.UTC(y, m+1, 1))
-    const end = new Date(Date.UTC(next.getUTCFullYear(), next.getUTCMonth()+1, 0)).getUTCDate()
-    d.setUTCFullYear(next.getUTCFullYear(), next.getUTCMonth(), Math.min(day, end))
-  }
-  return d.toISOString().slice(0,10)
-}
-
-async function autoDetectBnpl({ importedTx, userId }) {
-  const groups = detectBnplGroups(importedTx)
-  const created = []
-  for (const [key, arr] of groups.entries()) {
-    if (arr.length < 2) continue // need at least 2 to infer
-    const [provider, merchant, absAmtStr] = key.split('|')
-    const absAmt = Number(absAmtStr)
-    // sort by date
-    const seq = arr.map(t => ({ ...t, ts: new Date(t.postedDate+'T00:00:00Z').valueOf() }))
-                  .filter(t => isFinite(t.ts))
-                  .sort((a,b)=>a.ts-b.ts)
-
-    const gaps = []
-    for (let i=1;i<seq.length;i++) gaps.push((seq[i].ts - seq[i-1].ts) / (1000*60*60*24))
-    const medGap = median(gaps)
-    const cadence = (Math.abs(medGap - 14) <= 3) ? 'biweekly' : 'monthly'
-
-    // remaining installments heuristic: look for "1/4" in description; else default 4 or 6
-    const frac = seq[seq.length-1].description.match(/(\d+)\s*\/\s*(\d+)/)
-    let remaining = 4
-    if (frac) remaining = Math.max(0, Number(frac[2]) - Number(frac[1]))
-    else remaining = cadence === 'biweekly' ? Math.max(0, 4 - seq.length) : Math.max(0, 4 - seq.length)
-
-    const nextDueDate = addStep(seq[seq.length-1].postedDate, cadence)
-
-    const planId = `bnpl_${crypto.createHash('md5').update([userId,provider,merchant,absAmt].join('|')).digest('hex')}`
-
-    const planDoc = {
-      userId,
-      kind: 'bnpl',
-      name: merchant,
-      provider,
-      merchant,
-      amountCents: absAmt,
-      cadence,
-      nextDueDate,
-      remainingInstallments: remaining,
-      schemaVersion: 2,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
-    }
-
-    if (!dryRun) {
-      await db.collection('obligations').doc(planId).set(planDoc, { merge: true })
-      // tag imported tx with plan id
-      const batch = db.batch()
-      for (let i=0;i<seq.length;i++) {
-        const t = seq[i]
-        const ref = db.collection('transactions').doc(t.__docId)
-        batch.update(ref, { bnplPlanId: planId, bnplSequence: i+1, updatedAt: Timestamp.now() })
-      }
-      await batch.commit()
-    }
-    created.push({ planId, provider, merchant, cadence, amountCents: absAmt, nextDueDate, remainingInstallments: remaining, matched: seq.length })
-  }
-  return created
-}
-
 // ---------- main ----------
 ;(async function main() {
   const csv = fs.readFileSync(path.resolve(file), 'utf8')
@@ -282,7 +177,7 @@ async function autoDetectBnpl({ importedTx, userId }) {
 
     const ref = db.collection('transactions').doc(docId)
     batch.set(ref, doc, { merge: true })
-    imported.push({ ...t, __docId: docId, id: docId })
+    imported.push({ ...t, id: docId, amount: t.amountCents / 100, postedAt: t.postedDate })
     pending++; written++
     if (pending >= batchSize) {
       await batch.commit()
@@ -294,23 +189,24 @@ async function autoDetectBnpl({ importedTx, userId }) {
 
   console.log(`Imported ${written} transaction(s). Skipped ${skipped}.`)
 
-  if (bnplMode !== 'skip') {
-    const plans = await autoDetectBnpl({ importedTx: imported, userId })
-    if (plans.length) {
-      console.log(`BNPL detection: created/updated ${plans.length} plan(s):`)
-      for (const p of plans) {
-        const amt = (p.amountCents/100).toLocaleString('en-US',{style:'currency',currency:'USD'})
-        console.log(`- ${p.provider} • ${p.merchant} • ${p.cadence} • ${amt} • next ${p.nextDueDate} • matched ${p.matched} tx`)
-      }
-    } else {
-      console.log('BNPL detection: no plans inferred from this CSV batch.')
-    }
-  } else {
-    console.log('BNPL detection skipped (use --bnpl auto to enable).')
+  if (bnplMode && bnplMode.toString().toLowerCase() === 'auto') {
+    console.log('[BNPL] reconstructing from recent transactions...');
+    const res = await reconstructAndPersistBnpl({ userId, accountId, txns: imported });
+    console.log(`[BNPL] upserted ${res.stats.contracts} contracts / ${res.stats.installments} installments`);
   }
 
   if (dryRun) {
     console.log(`(dry run) Would write ${imported.length} tx. No Firestore changes made.`)
+    if (bnplMode === 'auto') {
+        const plans = await reconstructAndPersistBnpl({ userId, accountId, txns: imported });
+         if (plans.contracts.length) {
+            console.log(`(dry run) BNPL detection would have created ${plans.contracts.length} plan(s):`)
+            for (const p of plans.contracts) {
+                const amt = (p.installmentAmount).toLocaleString('en-US',{style:'currency',currency:'USD'})
+                console.log(`- ${p.provider} • ${p.merchant} • ${p.cadence} • ${amt} • next ${p.nextDueDate}`)
+            }
+        }
+    }
   }
 })().catch(err => {
   console.error(err)
