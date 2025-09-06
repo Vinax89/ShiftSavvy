@@ -170,7 +170,7 @@ export default function PlannerClient() {
             <div><span className="text-muted-foreground">Total Interest (Min-Only):</span> <span className="font-medium">{fmtUSD(baseSummary.totalInterestCents)}</span></div>
             <div><span className="text-muted-foreground">Interest Saved:</span> <span className="font-medium text-green-700 dark:text-green-400">{fmtUSD(saved)}</span></div>
           </div>
-          {mergedSeries.length ? <BalanceChart data={mergedSeries} fmtUSD={fmtUSD} /> : null}
+          {mergedSeries?.length ? <BalanceChart data={mergedSeries} fmtUSD={fmtUSD} /> : null}
           <div><Button onClick={onSave}>Save Run</Button></div>
           </CardContent>
         </Card>
