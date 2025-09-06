@@ -2,22 +2,21 @@
 import type { NextConfig } from 'next'
 
 const config: NextConfig = {
-  // Helps Next treat Turbopack as the bundler you intend to use (and lets you tweak it later)
+  // Make Turbopack explicit and silence "Webpack is configured…" warnings
   turbopack: {},
 
-  // keep this TOP-LEVEL (not under experimental)
+  // Allow Studio-hosted dev origin to reach /_next/*
+  // Add the exact Workstations host printed in your console if needed.
   allowedDevOrigins: [
-    'localhost','127.0.0.1','0.0.0.0',
-    '*.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev',
-    '9000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev',
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    '*.cloudworkstations.dev',
   ],
 
-  // If you have a custom webpack() override, disable it during dev.
-  webpack(config, { dev }) {
-    if (dev) return config;   // ← prevents Webpack-only tweaks from forcing a fallback
-    // production-only tweaks can go here…
-    return config;
-  },
+  // Keep this clean: NO webpack() override in dev (or at all for now).
+  // If you need production-only webpack tweaks later, place them in a separate
+  // 'next.config.webpack.js' and import conditionally for builds only.
 }
 
 export default config
