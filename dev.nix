@@ -1,7 +1,6 @@
 { pkgs ? import <nixpkgs> {} }:
-
 pkgs.mkShell {
-  packages = with pkgs; [
+  nativeBuildInputs = with pkgs; [
     nodejs_22
     corepack_22
   ];
