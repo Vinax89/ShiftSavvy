@@ -8,7 +8,6 @@
  * - SavingsTargetGuidanceOutput - The return type for the savingsTargetGuidance function.
  */
 
-import {ai} from '@/ai/genkit.server';
 import {z} from 'genkit';
 
 const SavingsTargetGuidanceInputSchema = z.object({
@@ -49,38 +48,38 @@ export type SavingsTargetGuidanceOutput = z.infer<typeof SavingsTargetGuidanceOu
 export async function savingsTargetGuidance(
   input: SavingsTargetGuidanceInput
 ): Promise<SavingsTargetGuidanceOutput> {
+  const {ai} = await import('@/ai/genkit.server');
+  const prompt = ai.definePrompt({
+    name: 'savingsTargetGuidancePrompt',
+    input: {schema: SavingsTargetGuidanceInputSchema},
+    output: {schema: SavingsTargetGuidanceOutputSchema},
+    prompt: `You are a financial advisor helping a user set a reasonable savings goal and determine if their future shifts will allow them to achieve that goal.
+
+    Consider the following information about the user's financial situation:
+    Current monthly income: {{income}}
+    Current monthly expenses: {{expenses}}
+    Current savings balance: {{currentSavings}}
+    Future shifts: {{futureShifts}}
+    Savings goal description: {{savingsGoalDescription}}
+
+    Based on this information, provide the following:
+    - A recommended savings goal.
+    - Whether the user is likely to achieve their savings goal, given their current financial situation and future shifts.
+    - Suggestions for how the user can increase their savings, such as reducing expenses or working more shifts.
+
+    Please provide your response in a structured format.`,
+  });
+
+  const savingsTargetGuidanceFlow = ai.defineFlow(
+    {
+      name: 'savingsTargetGuidanceFlow',
+      inputSchema: SavingsTargetGuidanceInputSchema,
+      outputSchema: SavingsTargetGuidanceOutputSchema,
+    },
+    async input => {
+      const {output} = await prompt(input);
+      return output!;
+    }
+  );
   return savingsTargetGuidanceFlow(input);
 }
-
-const prompt = ai.definePrompt({
-  name: 'savingsTargetGuidancePrompt',
-  input: {schema: SavingsTargetGuidanceInputSchema},
-  output: {schema: SavingsTargetGuidanceOutputSchema},
-  prompt: `You are a financial advisor helping a user set a reasonable savings goal and determine if their future shifts will allow them to achieve that goal.
-
-  Consider the following information about the user's financial situation:
-  Current monthly income: {{income}}
-  Current monthly expenses: {{expenses}}
-  Current savings balance: {{currentSavings}}
-  Future shifts: {{futureShifts}}
-  Savings goal description: {{savingsGoalDescription}}
-
-  Based on this information, provide the following:
-  - A recommended savings goal.
-  - Whether the user is likely to achieve their savings goal, given their current financial situation and future shifts.
-  - Suggestions for how the user can increase their savings, such as reducing expenses or working more shifts.
-
-  Please provide your response in a structured format.`,
-});
-
-const savingsTargetGuidanceFlow = ai.defineFlow(
-  {
-    name: 'savingsTargetGuidanceFlow',
-    inputSchema: SavingsTargetGuidanceInputSchema,
-    outputSchema: SavingsTargetGuidanceOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
-  }
-);
