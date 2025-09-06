@@ -16,3 +16,13 @@ export async function findMonthlyMatches({ userId, accountId, ym, amountCents }:
   const snap = await getDocs(qy)
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
+
+export async function findBnplMatch({ userId, planId, ym }: { userId:string, planId:string, ym:string }){
+  const from = ym+'-01'; 
+  const date = new Date(from + "T00:00:00Z");
+  date.setUTCMonth(date.getUTCMonth()+1); 
+  date.setUTCDate(0);
+  const end = date.toISOString().slice(0,10)
+  const snap = await getDocs(query(collection(db,'transactions'), where('userId','==',userId), where('bnplPlanId','==', planId), where('postedDate','>=', from), where('postedDate','<=', end)))
+  return snap.docs.map(d=>({ id:d.id, ...d.data() }))
+}

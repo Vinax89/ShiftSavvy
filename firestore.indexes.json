@@ -66,8 +66,15 @@
         { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "date", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "bnplPlanId", "order": "ASCENDING" },
+        { "fieldPath": "postedDate", "order": "ASCENDING" }
+      ]
     }
   ]
 }
-
-    
