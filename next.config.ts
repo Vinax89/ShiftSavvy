@@ -8,6 +8,7 @@ const FN_ORIGIN = process.env.FUNCTIONS_EMULATOR_ORIGIN ?? 'http://127.0.0.1:500
 const dynamicOrigin = process.env.NEXT_DEV_ALLOWED_ORIGIN;
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ['handlebars', 'dotprompt', 'genkit', '@genkit-ai/core'],
   transpilePackages: ['@domain'],
   images: {
     remotePatterns: [
