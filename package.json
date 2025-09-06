@@ -4,19 +4,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -p 9002",
-    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
-    "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "seed:demo": "tsx -r dotenv/config src/tools/seed-demo.ts",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "import:csv": "tsx tools/import-transactions.ts ./samples/transactions.csv demo-uid generic:checking:0000",
-    "import:ofx": "tsx tools/import-transactions.ts ./samples/transactions.ofx demo-uid generic:checking:0000",
-    "bnpl:detect": "tsx src/tools/bnpl/run.ts"
+    "dev": "next dev",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",
