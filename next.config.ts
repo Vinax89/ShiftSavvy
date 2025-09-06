@@ -1,23 +1,26 @@
 import type { NextConfig } from 'next'
 
-// Keep Turbopack clean in dev and silence "Webpack configured" warning
-const base: NextConfig = {
+/**
+ * Next.js 15 config tuned for Firebase Studio + Turbopack.
+ * - allowedDevOrigins stops _next/* CORS blocks from Cloud Workstations
+ * - turbopack:{} enables TP config (and ensures no legacy webpack setup fights it)
+ * - DO NOT add a "webpack(config){...}" hook; Turbopack ignores it & Next warns.
+ */
+const nextConfig: NextConfig = {
+  reactStrictMode: true,
+
+  // ✅ Allow dev assets to be loaded by Firebase Studio Workstations origin.
+  allowedDevOrigins: [
+    process.env.STUDIO_ORIGIN || '',
+    'http://localhost:9002',
+    'http://0.0.0.0:9002',
+  ].filter(Boolean),
+
+  // ✅ Turbopack configuration bucket (even if empty) — keeps TP happy.
   turbopack: {},
-  allowedDevOrigins: ['localhost','127.0.0.1','0.0.0.0','*.cloudworkstations.dev'],
+
+  experimental: {
+    typedRoutes: true,
+  },
 }
-
-const isProd = process.env.NODE_ENV === 'production'
-let exported: NextConfig = base
-
-if (isProd) {
-  // Wrap only in prod to avoid Webpack-in-dev behavior
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { withSentryConfig } = require('@sentry/nextjs')
-  exported = withSentryConfig(
-    base,
-    { silent: true },             // Sentry Webpack plugin opts
-    { hideSourceMaps: true }      // Sentry SDK opts
-  )
-}
-
-export default exported
+export default nextConfig
