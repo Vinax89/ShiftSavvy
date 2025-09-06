@@ -1,4 +1,3 @@
-
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import UpcomingShifts from '@/components/dashboard/upcoming-shifts';
@@ -12,6 +11,30 @@ import { useState, useEffect } from 'react';
 import AppHeader from '@/components/app-header';
 import AppSidebar from '@/components/app-sidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import {
+  Home,
+  LineChart,
+  Package,
+  Settings,
+  Users,
+  Wallet,
+  Calendar,
+  FileText,
+} from 'lucide-react';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarSeparator,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
+import { Logo } from '@/components/icons';
 
 export default function DashboardPage() {
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -79,9 +102,63 @@ export default function DashboardPage() {
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <Sidebar>
+        <SidebarHeader>
+          <div className="flex items-center gap-2">
+            <Logo className="size-6 text-primary" />
+            <span className="text-lg font-semibold">ShiftSavvy</span>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton href="/" isActive>
+                <Home />
+                Dashboard
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton href="/paycheck">
+                <Wallet />
+                Paycheck
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton href="/calendar">
+                <Calendar />
+                Cashflow
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton href="/planner">
+                <LineChart />
+                Debt Planner
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton href="/transactions">
+                <FileText />
+                Transactions
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarContent>
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton href="#">
+                <Settings />
+                Settings
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      </Sidebar>
       <SidebarInset>
-        <AppHeader />
+        <header className="h-12 flex items-center px-4 border-b">
+            <SidebarTrigger />
+            <h1 className="text-lg font-semibold ml-2">Dashboard</h1>
+        </header>
         <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>

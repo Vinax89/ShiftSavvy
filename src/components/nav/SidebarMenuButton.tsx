@@ -4,12 +4,12 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
-export function SidebarMenuButton({ href, children }: { href: string; children: React.ReactNode }) {
+export function SidebarMenuButton({ href, children, isActive: manualIsActive }: { href: string; children: React.ReactNode, isActive?: boolean }) {
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
-  const isActive = mounted && pathname === href  // SSR neutral, no mismatch
+  const isActive = mounted && (manualIsActive || pathname === href)  // SSR neutral, no mismatch
   return (
     <Link
       href={href}
