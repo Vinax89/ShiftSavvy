@@ -1,3 +1,4 @@
+
 'use client';
 import { getAuth } from 'firebase/auth'
 
@@ -9,15 +10,16 @@ export async function apiFetch<T = any>(path: string, opts: Opts = {}): Promise<
   const auth = getAuth();
   const user = auth.currentUser;
   
-  if (user) {
+  if (opts.requireAuth) {
+    if (!user) {
+      throw new Error('Authentication is required for this request.');
+    }
     const token = await user.getIdToken().catch(() => null);
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+    } else {
+      throw new Error('Could not retrieve authentication token.');
     }
-  } else if (opts.requireAuth) {
-    // If auth is required but not available, we can throw early
-    // though the server-side `getUid` will catch it anyway.
-    throw new Error('Authentication is required for this request.');
   }
 
   const res = await fetch(path, { ...opts, headers });

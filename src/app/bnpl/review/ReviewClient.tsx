@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { auth } from '@/lib/firebase.client'
+import { apiFetch } from '@/lib/api.client'
 import TxnPickerModal from './TxnPickerModal'
 
 type Sched = { dueDate: string; amountCents: number; txnId?: string; paidCents?: number }
@@ -21,13 +21,7 @@ type Plan = {
   aprPct?: number|null
   notes?: string
 }
-
-async function getAuthHeaders(): Promise<HeadersInit> {
-    const user = auth.currentUser
-    if (!user) return {}
-    const token = await user.getIdToken()
-    return { Authorization: `Bearer ${token}` }
-}
+type PlansResponse = { ok: true, plans: Plan[] }
 
 
 export default function ReviewClient() {
@@ -39,21 +33,18 @@ export default function ReviewClient() {
     { open: false }
   )
 
-  async function fetchRollups() {
+  async function fetchPlans() {
     if (!uid) return
     setLoading(true)
     try {
-      const headers = await getAuthHeaders();
-      const r = await fetch('/api/bnpl/rollups', { headers })
-      const j = await r.json()
-      if (!j.ok) throw new Error(j.error || 'Failed to load rollups')
-      setPlans((j.plans || []) as Plan[])
+      const j = await apiFetch<PlansResponse>('/api/bnpl/plans', { requireAuth: true })
+      setPlans(j.plans || [])
     } catch (e: any) {
       toast.error(e.message || 'Load failed')
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { fetchRollups() }, [uid]) // load on sign-in
+  useEffect(() => { fetchPlans() }, [uid]) // load on sign-in
 
   function setDraft(planId: string, mutate: (p: Plan)=>Plan) {
     setEditing(prev => ({ ...prev, [planId]: mutate(prev[planId] ?? plans.find(p => p.id===planId)!) }))
@@ -66,14 +57,11 @@ export default function ReviewClient() {
     const prev = plans
     setPlans(plans.map(p => p.id===planId ? draft : p))
     try {
-      const headers = await getAuthHeaders();
-      const r = await fetch('/api/bnpl/plan', {
+      const j = await apiFetch('/api/bnpl/plan', {
         method: 'POST',
-        headers: { 'content-type':'application/json', ...headers },
         body: JSON.stringify(draft),
+        requireAuth: true,
       })
-      const j = await r.json()
-      if (!j.ok) throw new Error(j.error || 'Save failed')
       toast.success('Plan saved')
       setEditing(({ [planId]: _omit, ...rest }) => rest)
     } catch (e:any) {
@@ -90,14 +78,11 @@ export default function ReviewClient() {
       schedule: p.schedule.map((s, i) => i===schedIdx ? { ...s, txnId } : s)
     }) : p))
     try {
-       const headers = await getAuthHeaders();
-      const r = await fetch('/api/bnpl/link', {
+       await apiFetch('/api/bnpl/link', {
         method: 'POST',
-        headers: { 'content-type':'application/json', ...headers },
-        body: JSON.stringify({ planId, txnId, role:'installment' })
+        body: JSON.stringify({ planId, txnId, role:'installment' }),
+        requireAuth: true,
       })
-      const j = await r.json()
-      if (!j.ok) throw new Error(j.error || 'Link failed')
       toast.success('Linked')
     } catch (e:any) {
       setPlans(prev)
@@ -112,14 +97,11 @@ export default function ReviewClient() {
       schedule: p.schedule.map((s, i) => i===schedIdx ? { ...s, txnId: undefined } : s)
     }) : p))
     try {
-       const headers = await getAuthHeaders();
-      const r = await fetch('/api/bnpl/unlink', {
+       await apiFetch('/api/bnpl/unlink', {
         method: 'POST',
-        headers: { 'content-type':'application/json', ...headers },
-        body: JSON.stringify({ planId, txnId })
+        body: JSON.stringify({ planId, txnId }),
+        requireAuth: true,
       })
-      const j = await r.json()
-      if (!j.ok) throw new Error(j.error || 'Unlink failed')
       toast.success('Unlinked')
     } catch (e:any) {
       setPlans(prev)
@@ -132,14 +114,11 @@ export default function ReviewClient() {
     const prev = plans
     setPlans(plans.map(p => p.id===planId ? { ...p, status:'paid' } : p))
     try {
-       const headers = await getAuthHeaders();
-      const r = await fetch('/api/bnpl/close', {
+       await apiFetch('/api/bnpl/close', {
         method: 'POST',
-        headers: { 'content-type':'application/json', ...headers },
-        body: JSON.stringify({ planId })
+        body: JSON.stringify({ planId }),
+        requireAuth: true,
       })
-      const j = await r.json()
-      if (!j.ok) throw new Error(j.error || 'Close failed')
       toast.success('Plan closed')
     } catch (e:any) {
       setPlans(prev)
@@ -155,7 +134,7 @@ export default function ReviewClient() {
         <CardHeader className="space-y-1">
           <CardTitle>Review BNPL</CardTitle>
           <CardDescription>
-            Link payments, edit schedules, and close plans. <Button variant="secondary" size="sm" onClick={fetchRollups} disabled={loading}>Refresh</Button>
+            Link payments, edit schedules, and close plans. <Button variant="secondary" size="sm" onClick={fetchPlans} disabled={loading}>Refresh</Button>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
