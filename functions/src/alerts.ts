@@ -1,4 +1,3 @@
-
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
@@ -277,7 +276,7 @@ export async function sendAlertEmail(params: {
 
   const msg = {
     to: params.to,
-    from: functions.params.defineString('ALERTS_FROM_EMAIL').value() || 'no-reply@example.com',
+    from: functions.params.defineString('SENDGRID_FROM', { description: 'The From: email address for alert emails.'}).value() || 'no-reply@example.com',
     subject: params.subject,
     html: params.html,
   };
@@ -287,10 +286,10 @@ export async function sendAlertEmail(params: {
 
 
 // ---- Schedules & Endpoints ----
-const secrets = ["SENDGRID_API_KEY", "SENDGRID_FROM", "SPEC3_TZ"];
+const secrets = ["SENDGRID_API_KEY", "SENDGRID_FROM"];
 
 // Run daily at 8:30AM in your default TZ (override with env TZ)
-export const alertsDaily = onSchedule({
+export const alertsdaily = onSchedule({
   schedule: "every day 08:30",
   timeZone: process.env.SPEC3_TZ || "America/Los_Angeles",
   region: "us-central1",
@@ -303,7 +302,7 @@ export const alertsDaily = onSchedule({
 });
 
 // Manual on-demand trigger: GET /alertsRunNow?uid=abc
-export const alertsRunNow = onRequest({region: "us-central1", secrets}, async (req, res) => {
+export const alertsrunnow = onRequest({region: "us-central1", secrets}, async (req, res) => {
   const uid = (req.query.uid as string) || "";
   if (!uid) {
     res.status(400).send("Missing uid");
