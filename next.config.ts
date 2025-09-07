@@ -1,6 +1,17 @@
-import type { NextConfig } from 'next'
-import withBundleAnalyzer from '@next/bundle-analyzer'
+/** Minimal Turbopack config — no webpack() override */
+const config = {
+  // Explicit Turbopack so Next doesn’t assume Webpack config is intended
+  turbopack: {},
 
+  // Dev host allowance for Firebase Studio / Workstations
+  allowedDevOrigins: [
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    '*.cloudworkstations.dev',
+  ],
+};
+export default config;
 // Canvas/Studio-friendly config:
 //  - allowedDevOrigins accepts rotating Firebase Studio preview hosts via regex
 //  - memory cache in dev avoids overlay-fs rename races on packfile renames
