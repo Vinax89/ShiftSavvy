@@ -4,6 +4,7 @@ import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import * as admin from "firebase-admin";
 import * as functions from 'firebase-functions';
 import * as sg from "@sendgrid/mail";
+import { LRUCache } from 'lru-cache';
 
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -60,6 +61,10 @@ type AlertDoc = {
   hash: string;
 };
 
+const settingsCache = new LRUCache<string, Settings>({ max: 1000, ttl: 1000 * 60 * 5 });
+const accountCache = new LRUCache<string, Account | undefined>({ max: 1000, ttl: 1000 * 60 * 5 });
+
+
 const TZ_FALLBACK = "UTC";
 const WINDOW_DAYS = 7;
 
@@ -96,23 +101,35 @@ async function listUserIds(): Promise<string[]> {
 }
 
 async function getSettings(uid: string): Promise<Settings> {
+  const cached = settingsCache.get(uid);
+  if (cached) return cached;
   const ref = db.collection("users").doc(uid).collection("settings").doc("app");
   const snap = await ref.get();
-  return (snap.exists ? (snap.data() as Settings) : {}) ?? {};
+  const settings = (snap.exists ? (snap.data() as Settings) : {}) ?? {};
+  settingsCache.set(uid, settings);
+  return settings;
 }
 
 async function getPrimaryAccount(uid: string): Promise<Account | undefined> {
+  const cached = accountCache.get(uid);
+  if (cached) return cached;
+
   const accRef = db.collection("users").doc(uid).collection("accounts");
   const primary = await accRef.where("primary", "==", true).limit(1).get();
   if (!primary.empty) {
     const d = primary.docs[0];
-    return { id: d.id, ...(d.data() as any) };
+    const acct = { id: d.id, ...(d.data() as any) };
+    accountCache.set(uid, acct);
+    return acct;
   }
   const first = await accRef.limit(1).get();
   if (!first.empty) {
     const d = first.docs[0];
-    return { id: d.id, ...(d.data() as any) };
+    const acct = { id: d.id, ...(d.data() as any) };
+    accountCache.set(uid, acct);
+    return acct;
   }
+  accountCache.set(uid, undefined);
   return undefined;
 }
 
