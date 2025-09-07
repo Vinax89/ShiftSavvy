@@ -1,55 +1,21 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // check if the user is the owner of the document
+
     function isOwner(uid) {
       return request.auth != null && request.auth.uid == uid;
     }
 
-    // Default deny all
-    match /{document=**} {
+    match /users/{uid}/transactions/{txnId} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && request.resource.data.userId == uid;
+      allow delete: if isOwner(uid);
+    }
+
+    // Capture-all for any other collections (safer default)
+    match /{path=**} {
       allow read, write: if false;
-    }
-    
-    // User-specific data
-    match /users/{uid}/{document=**} {
-      allow read, write: if isOwner(uid);
-    }
-    
-    // Paycheck estimates: owners can create, only with schema v2+
-    match /paycheck_estimates/{estimateId} {
-      allow read: if isOwner(request.resource.data.userId);
-      allow create: if isOwner(request.resource.data.userId) && request.resource.data.schemaVersion >= 2;
-      allow update, delete: if false;
-    }
-    
-    // Transactions can be read by their owner. Writes are server-only for now.
-    match /transactions/{transactionId} {
-      allow read: if isOwner(resource.data.userId);
-      allow create, update, delete: if false;
-    }
-    
-    // BNPL (Buy Now, Pay Later) event sourcing
-    match /users/{uid}/bnpl/events/{eventId} {
-      allow read: if isOwner(uid);
-      allow create: if isOwner(uid);
-      allow update, delete: if false;
-    }
-    
-    // Alerts: can be read by owner, can only be ACK'd by owner
-    match /users/{uid}/alerts/{alertId} {
-      allow read: if isOwner(uid);
-      allow update: if isOwner(uid)
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['ack','ackAt', 'state'])
-        && request.resource.data.ack == true
-        && request.resource.data.state == 'ack'
-        && request.resource.data.ackAt is timestamp
-        && request.resource.data.ackAt >= resource.data.createdAt
-        && request.resource.data.ackAt <= request.time;
-      allow create, delete: if false;
     }
   }
 }
