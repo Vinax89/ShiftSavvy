@@ -3,7 +3,7 @@
 import { addDoc, collection, getDocs, orderBy, query, serverTimestamp, where, limit } from 'firebase/firestore'
 import { db } from '@/lib/firebase.client'
 import { stableStringify } from '@/domain/canonical'
-import { sha256Hex } from '@/domain/hash'
+import { sha256Hex } from '@/domain/hash-client'
 import { summarizeInputs } from '@/domain/paycheck.summary'
 import { evaluatePaycheck } from '@/domain/paycheck'
 import { enqueueEstimate } from '@/lib/queue'

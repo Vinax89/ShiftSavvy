@@ -1,18 +1,19 @@
-name: "ShiftSavvy CodeQL"
-
+name: ShiftSavvy CodeQL Config
 paths:
   - src
-  - functions/src
+  - src/tools
   - scripts
-  - .github/workflows   # keep Actions scanning
-
+  - functions/src
+  - .github/workflows
 paths-ignore:
+  - node_modules/**
   - .next/**
+  - .turbo/**
   - dist/**
   - functions/dist/**
   - coverage/**
-  - node_modules/**
-
+  - public/**
+  - playwright-report/**
 queries:
   - uses: security-extended
   - uses: security-and-quality

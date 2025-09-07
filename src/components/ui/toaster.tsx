@@ -1,7 +1,9 @@
 'use client';
-
-import { Toaster as Sonner } from 'sonner';
+import { Toaster as SonnerToaster, toast as sonnerToast } from 'sonner';
 
 export default function Toaster() {
-  return <Sonner richColors closeButton />;
+  return <SonnerToaster richColors closeButton />;
 }
+
+// Optional: re-export toast so callers can import from the same module
+export const toast = sonnerToast;
