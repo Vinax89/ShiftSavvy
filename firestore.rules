@@ -1,51 +1,62 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
+    
+    // --- Helper Functions ---
     function isOwner(uid) {
       return request.auth != null && request.auth.uid == uid;
     }
-
-    // All user data is nested under /users/{uid}
+    
+    function isNew() { return !exists(path) }
+    function isExisting() { return exists(path) }
+    
+    // --- User Data ---
     match /users/{uid} {
       allow read, write: if isOwner(uid);
-
-      // Transactions
-      match /transactions/{txnId} {
+      
+      // -- Subcollections --
+      match /{subcollection}/{docId} {
         allow read, write: if isOwner(uid);
       }
-
-      // BNPL contracts (current storage)
+      
       match /bnpl/contracts/{contractId} {
         allow read, write: if isOwner(uid);
       }
-      match /bnpl/contracts/{contractId}/{sub=**}/{id} {
+
+      match /bnpl/contracts/{contractId}/installments/{installmentId} {
+         allow read, write: if isOwner(uid);
+      }
+      
+      match /bnpl/contracts/{contractId}/links/{linkId} {
         allow read, write: if isOwner(uid);
       }
-
-      // BNPL events (audit trail)
+      
       match /bnpl/events/{eventId} {
-        allow read, write: if isOwner(uid);
-      }
-
-      // Settings (single doc "app")
-      match /settings/{docId} {
-        allow read, write: if isOwner(uid) && docId == "app";
-      }
-
-      // Alerts: user can read / ack; server creates
-      match /alerts/{alertId} {
         allow read: if isOwner(uid);
-        allow update: if isOwner(uid)
-                      && request.resource.data.diff(resource.data)
-                          .changedKeys().hasOnly(['ack','ackAt']);
-        allow create, delete: if false;
+        allow create: if isOwner(uid);
+        allow update, delete: if false;
       }
     }
-
-    // Optional: demo collections (lock down for prod)
-    // match /shifts/{id} { allow read, write: if false; }
-    // match /tax_profiles/{id} { allow read, write: if false; }
+    
+    // --- App Data ---
+    match /paycheck_estimates/{estimateId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId) && request.resource.data.schemaVersion == 2;
+    }
+    
+    match /transactions/{transactionId} {
+      allow read, write: if isOwner(resource.data.userId);
+      // create is more complex due to imports, handle with backend logic/roles
+    }
+    
+    match /shifts/{shiftId} {
+      allow read, write: if isOwner(resource.data.userId);
+    }
+    
+    match /tax_profiles/{userId} {
+      allow read, write: if isOwner(userId);
+    }
   }
 }
