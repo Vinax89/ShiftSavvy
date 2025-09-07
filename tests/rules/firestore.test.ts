@@ -1,5 +1,10 @@
 import { beforeAll, afterAll, beforeEach, describe, it, expect } from 'vitest'
-import { initializeTestEnvironment, assertFails, assertSucceeds, type RulesTestEnvironment } from '@firebase/rules-unit-testing'
+import {
+  initializeTestEnvironment,
+  assertFails,
+  assertSucceeds,
+  type RulesTestEnvironment
+} from '@firebase/rules-unit-testing'
 import { doc, setDoc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import fs from 'fs';
 
