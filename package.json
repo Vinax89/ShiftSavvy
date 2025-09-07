@@ -1,9 +1,10 @@
+
 {
   "name": "nextn",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 0.0.0.0 -p 9002",
+    "dev": "npx next dev -H 0.0.0.0 -p 9002",
     "clean": "rimraf .next .turbo node_modules/.cache .genkit && echo cleaned",
     "test": "vitest run",
     "test:rules": "vitest run tests/rules --reporter=dot",
@@ -24,7 +25,7 @@
     "e2e:ui": "playwright test --ui",
     "lint": "eslint . --ext .ts,.tsx --max-warnings=0 -f node_modules/eslint-formatter-github",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "predev": "fuser -k 9002/tcp || true",
+    "predev": "true",
     "postinstall": "patch-package",
     "typecheck": "tsc -p ."
   },
@@ -95,13 +96,10 @@
     "genkit-cli": "^1.14.1",
     "patch-package": "^8.0.0",
     "postcss": "^8",
-    "rimraf": "^5.0.10",
     "rimraf": "^6.0.1",
     "tailwindcss": "^3.4.1",
-    "tsx": "^4.16.2",
-    "typescript": "^5.5.4",
     "tsx": "^4.19.1",
-    "typescript": "^5",
+    "typescript": "^5.5.4",
     "vitest": "^3.2.4"
   },
   "overrides": {
