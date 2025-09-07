@@ -4,6 +4,7 @@ import withBundleAnalyzer from "@next/bundle-analyzer";
 
 const nextConfig: NextConfig = {
   // Allow Studio’s preview host to fetch /_next/* during dev
+  // @ts-expect-error -- available in newer Next 15
   allowedDevOrigins: [
     // update if Studio shows a different hostname
     "https://6000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev",
