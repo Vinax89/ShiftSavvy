@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cachedFetchJSON } from '@/lib/cachedFetch.server';
 
 export const runtime = 'nodejs'; // ensure Node runtime
 
@@ -7,29 +8,21 @@ export async function GET(request: Request) {
   const repo = searchParams.get('repo') || 'vercel/next.js';
 
   try {
-    // NOTE: This is a direct fetch. Caching can be added later.
-    const res = await fetch(
+    const data = await cachedFetchJSON(
       `https://api.github.com/repos/${repo}`,
       {
+        ttl: 60_000, // 1 minute cache
         headers: {
           'Accept': 'application/vnd.github.v3+json',
           'User-Agent': 'ShiftSavvy-App',
         },
-        // Revalidate every 60 seconds
-        next: { revalidate: 60 }
       }
     );
-
-    if (!res.ok) {
-        const errorData = await res.json();
-        return NextResponse.json({ error: errorData.message || 'Failed to fetch from GitHub' }, { status: res.status });
-    }
-
-    const data = await res.json();
     return NextResponse.json(data);
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    // The error from cachedFetchJSON is already quite descriptive.
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

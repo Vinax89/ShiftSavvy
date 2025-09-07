@@ -1,10 +1,10 @@
 'use server';
 
-// This utility is for server-components only.
+// This utility is for server-components and API routes.
 // It leverages the built-in caching of Next.js's `fetch` function.
 
 type FetchOptions = RequestInit & {
-  ttl?: number;
+  ttl?: number; // ttl in milliseconds
 };
 
 export async function cachedFetchJSON<T = any>(
@@ -26,7 +26,7 @@ export async function cachedFetchJSON<T = any>(
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}\n${text.slice(0, 500)}`);
+    throw new Error(`GitHub API Error: ${res.status} ${res.statusText} for ${url}\n${text.slice(0, 500)}`);
   }
 
   const contentType = res.headers.get('content-type') || '';
