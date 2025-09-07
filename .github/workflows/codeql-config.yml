@@ -1,20 +1,25 @@
+# .github/codeql/codeql-config.yml
 name: ShiftSavvy CodeQL Config
 
-# Analyze only source; skip generated/build artifacts to keep runs fast/noisy-free
+# Analyze source + scripts (and Actions), skip build artifacts & deps
 paths:
   - src
-  - functions/src
+  - src/tools
   - scripts
-  - .github/workflows # keep Actions scanning if you want "actions" language
+  - functions/src        # keep if you have Firebase Functions
+  - .github/workflows    # enables scanning the "actions" language
 
 paths-ignore:
+  - node_modules/**
   - .next/**
+  - .turbo/**
   - dist/**
   - functions/dist/**
   - coverage/**
-  - node_modules/**
+  - public/**
+  - playwright-report/**
 
-# Add extended security and quality rules
+# Extended security + quality queries on top of defaults
 queries:
   - uses: security-extended
   - uses: security-and-quality
