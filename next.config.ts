@@ -1,21 +1,20 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  // allow Firebase Studio (copy the exact origin that appears in your logs)
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  // allow Firebase Studio (use the exact origin you see in logs)
   allowedDevOrigins: [
     'https://9000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev',
   ],
-
-  // Optional: hide noisy OTEL “Critical dependency … an expression” warnings in dev
   webpack: (config: any) => {
-    config.ignoreWarnings ??= [];
+    config.ignoreWarnings ??= []
     config.ignoreWarnings.push(
       /Critical dependency: the request of a dependency is an expression/
-    );
-    return config;
+    )
+    return config
   },
-};
+}
 
-module.exports = nextConfig;
+export default nextConfig
 // Canvas/Studio-friendly config:
 //  - allowedDevOrigins accepts rotating Firebase Studio preview hosts via regex
 //  - memory cache in dev avoids overlay-fs rename races on packfile renames
