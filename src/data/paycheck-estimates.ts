@@ -3,7 +3,7 @@
 import { addDoc, collection, getDocs, orderBy, query, serverTimestamp, where, limit } from 'firebase/firestore'
 import { db } from '@/lib/firebase.client'
 import { stableStringify } from '@/domain/canonical'
-import { sha256Base64 } from '@/domain/hash.server'
+import { sha256Hex } from '@/domain/hash.server'
 import { summarizeInputs } from '@/domain/paycheck.summary'
 import { evaluatePaycheck } from '@/domain/paycheck'
 import { enqueueEstimate } from '@/lib/queue'
@@ -24,10 +24,10 @@ export async function listEstimates(userId: string, n = 10) {
 }
 
 
-export async function buildEstimateDoc({ userId, shifts, policy, tax, ytd, periodStart, periodEnd }: any) {
+export function buildEstimateDoc({ userId, shifts, policy, tax, ytd, periodStart, periodEnd }: any) {
   const inputs = { shifts, policy, tax, ytd }
   const canonical = stableStringify(inputs)
-  const inputsHash = await sha256Base64(canonical)
+  const inputsHash = sha256Hex(canonical)
   const summary = summarizeInputs(shifts, policy)
   const result = evaluatePaycheck({ shifts, policy, tax, ytd })
   return { userId, periodStart, periodEnd, inputsHash, summary, result, schemaVersion: 2 }
