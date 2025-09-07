@@ -62,7 +62,7 @@
     "dotenv": "^16.6.1",
     "embla-carousel-react": "^8.6.0",
     "fast-xml-parser": "^4.4.0",
-    "firebase": "^12.3.1",
+    "firebase": "10.14.1",
     "firebase-admin": "^13.5.0",
     "firebaseui": "^6.1.0",
     "genkit": "^1.14.1",
@@ -102,10 +102,7 @@
     "vitest": "^3.2.4"
   },
   "overrides": {
-    "undici": "^6.21.2"
-  }
-}
-    "@types/node": "^20.19.0"
+    "undici": "^6.21.3"
   },
-  "packageManager": "npm@10.5.0"
+  "packageManager": "npm@10.8.2"
 }
