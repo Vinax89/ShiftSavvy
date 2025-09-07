@@ -1,5 +1,6 @@
 
 import type { NextConfig } from "next";
+import withBundleAnalyzer from "@next/bundle-analyzer";
 
 const nextConfig: NextConfig = {
   // Allow Studio’s preview host to fetch /_next/* during dev
@@ -19,7 +20,11 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig
+const analyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
+
+export default analyzer(nextConfig)
 // Canvas/Studio-friendly config:
 //  - allowedDevOrigins accepts rotating Firebase Studio preview hosts via regex
 //  - memory cache in dev avoids overlay-fs rename races on packfile renames
