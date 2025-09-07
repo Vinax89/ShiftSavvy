@@ -24,7 +24,7 @@
     "e2e:ui": "playwright test --ui",
     "lint": "eslint . --ext .ts,.tsx --max-warnings=0 -f node_modules/eslint-formatter-github",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "predev": "kill-port 9002 || true",
+    "predev": "fuser -k 9002/tcp || true",
     "postinstall": "patch-package",
     "typecheck": "tsc -p ."
   },
