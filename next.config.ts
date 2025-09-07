@@ -1,20 +1,20 @@
-
-import type { NextConfig } from 'next'
+// next.config.ts
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // allow Firebase Studio (use the exact origin you see in logs)
+  // allow Studio pages to load your /_next/* assets
   allowedDevOrigins: [
-    'https://6000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev',
-    'https://9000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev',
+    "https://9000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev",
+    "https://6000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev",
   ],
-  webpack: (config: any) => {
-    config.ignoreWarnings ??= []
-    config.ignoreWarnings.push(
-      /Critical dependency: the request of a dependency is an expression/
-    )
-    return config
+  // (optional) silence noisy OTel warnings from Sentry in dev
+  webpack: (config) => {
+    config.ignoreWarnings = [
+      /Critical dependency: the request of a dependency is an expression/,
+    ];
+    return config;
   },
-}
+};
 
 export default nextConfig
 // Canvas/Studio-friendly config:
