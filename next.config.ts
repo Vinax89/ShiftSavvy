@@ -1,17 +1,20 @@
-/** Minimal Turbopack config — no webpack() override */
-const config = {
-  // Explicit Turbopack so Next doesn’t assume Webpack config is intended
-  turbopack: {},
-
-  // Dev host allowance for Firebase Studio / Workstations
-  allowedDevOrigins: [
-    'localhost',
-    '127.0.0.1',
-    '0.0.0.0',
-    '*.cloudworkstations.dev',
-  ],
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Your Next.js configuration options go here.
+  // For example, to allow images from a specific domain:
+  // images: {
+  //   remotePatterns: [
+  //     {
+  //       protocol: 'https',
+  //       hostname: 'example.com',
+  //       port: '',
+  //       pathname: '/images/**',
+  //     },
+  //   ],
+  // },
 };
-export default config;
+
+module.exports = nextConfig;
 // Canvas/Studio-friendly config:
 //  - allowedDevOrigins accepts rotating Firebase Studio preview hosts via regex
 //  - memory cache in dev avoids overlay-fs rename races on packfile renames
