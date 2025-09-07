@@ -1,21 +1,23 @@
 diff --git a/node_modules/firebaseui/package.json b/node_modules/firebaseui/package.json
-index 4018614..83a5462 100644
+index 5e11413..6257b15 100644
 --- a/node_modules/firebaseui/package.json
 +++ b/node_modules/firebaseui/package.json
-@@ -95,7 +95,7 @@
+@@ -107,7 +107,7 @@
      "eslint-plugin-promise": "^6.1.1",
      "firebase-admin": "^11.5.0",
      "firebase-functions": "^4.2.1",
 -    "firebase": "^9.17.2",
 +    "firebase": "^9.17.2 || ^10.0.0 || ^11.0.0 || ^12.0.0",
-     "google-closure-compiler": "^20230802.0.0",
-     "gulp": "^4.0.2",
-     "gulp-less": "^5.0.0",
-@@ -107,6 +107,6 @@
-     "webpack-stream": "^7.0.0"
+     "google-closure-compiler": "^20230103.0.0",
+     "google-closure-library": "^20230103.0.0",
+     "jasmine-core": "^4.5.0",
+@@ -128,7 +128,7 @@
+     "typescript": "~4.7.4"
    },
    "peerDependencies": {
 -    "firebase": "^9.1.3 || ^10.0.0"
 +    "firebase": "^9.1.3 || ^10.0.0 || ^11.0.0 || ^12.0.0"
-   }
- }
+   },
+   "dependencies": {
+     "lit": "^2.6.1"
+

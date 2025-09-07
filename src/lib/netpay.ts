@@ -5,10 +5,18 @@ import { db } from '@/lib/firebase.client'
 import { evaluatePaycheck } from '@/domain/paycheck'
 import { periodBounds } from '@/domain/pay-periods'
 import { type Policy, type TaxProfile } from '@/domain/paycheck.schema'
+import { LRUCache } from 'lru-cache'
 
+const cache = new LRUCache<string, number>({
+  max: 100, // max 100 users' paydays
+  ttl: 1000 * 60 * 5, // 5 minutes
+})
 
 export async function getNetForPayday(opts: { userId: string, paydayYMD: string, schedule: any }) {
   const { userId, paydayYMD, schedule } = opts
+  const cacheKey = `${userId}:${paydayYMD}`
+  const cached = cache.get(cacheKey)
+  if (cached) return cached
   
   // 1) Try a saved estimate whose periodStart <= payday <= periodEnd (order by periodStart desc; filter client-side)
   const snap = await getDocs(query(
@@ -24,6 +32,7 @@ export async function getNetForPayday(opts: { userId: string, paydayYMD: string,
   })?.data()
   
   if (saved?.result?.netCents != null) {
+    cache.set(cacheKey, saved.result.netCents)
     return saved.result.netCents
   }
 
@@ -45,5 +54,7 @@ export async function getNetForPayday(opts: { userId: string, paydayYMD: string,
   const policy: Policy = { baseRateCents: 4500, diffs: { nightBps: 2000, weekendBps: 1500, holidayBps: 10000, chargeAddlPerHourCents: 200, bonusPerShiftCents: 0 }, ot: { weeklyHours: 40, otMultiplierBps: 15000 } }
   const ytd = { grossCents: 0 } // TODO: proper YTD calculation
   const r = evaluatePaycheck({ shifts, policy, tax, ytd })
+  
+  cache.set(cacheKey, r.netCents)
   return r.netCents
 }
