@@ -1,21 +1,65 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
     function isOwner(uid) {
       return request.auth != null && request.auth.uid == uid;
     }
 
-    match /users/{uid}/transactions/{txnId} {
-      allow read: if isOwner(uid);
-      allow create, update: if isOwner(uid) && request.resource.data.userId == uid;
-      allow delete: if isOwner(uid);
+    function isTimestamp(x) { return x is timestamp; }
+    function isNumber(x) { return x is int || x is float; }
+
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
     }
 
-    // Capture-all for any other collections (safer default)
-    match /{path=**} {
-      allow read, write: if false;
+    // Allow owner to do anything on their own subcollections, but with specific overrides below
+    match /users/{uid}/{coll}/{id} {
+      allow read, write: if isOwner(uid);
+    }
+
+    match /users/{uid}/bnpl/events/{eventId} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid);
+      allow update, delete: if false;
+    }
+
+    match /users/{uid}/alerts/{alertId} {
+      allow read: if isOwner(uid);
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['ack','ackAt', 'state'])
+        && request.resource.data.state == 'ack'
+        && request.resource.data.ack is bool
+        && request.resource.data.ackAt is timestamp
+        && request.resource.data.ack == true
+        && request.resource.data.ackAt >= resource.data.createdAt
+        && request.resource.data.ackAt <= request.time;
+      allow create, delete: if false;
+    }
+
+    match /users/{uid}/transactions/{txnId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+            && isNumber(request.resource.data.amountCents)
+            && request.resource.data.postedDate is string;
+        allow delete: if isOwner(uid);
+    }
+
+
+    // Paycheck estimates are immutable once created by the owner
+    match /paycheck_estimates/{estimateId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId)
+        && request.resource.data.schemaVersion == 2
+        && request.resource.data.result.netCents is number;
+      allow update, delete: if false;
+    }
+
+    // Legacy top-level transactions (read-only for clients now)
+    match /transactions/{txnId} {
+        allow read: if isOwner(resource.data.userId);
+        allow write: if false;
     }
   }
 }
