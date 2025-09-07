@@ -6,7 +6,12 @@ on:
   pull_request:
     branches: [ "main" ]
   schedule:
-    - cron: '26 12 * * 6'
+    # pick one weekly time; keeping Thu 12:41 UTC from your second file
+    - cron: '41 12 * * 4'
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:
@@ -29,7 +34,9 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # better PR decoration & blame
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
@@ -38,8 +45,7 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
           config-file: ./.github/codeql/codeql-config.yml
 
-      # JS/TS doesn't need a build for CodeQL. If you add compiled languages later,
-      # switch that entry to build-mode: manual and add your build commands here.
+      # No build needed for JS/TS/Actions
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
