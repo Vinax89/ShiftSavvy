@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --hostname 0.0.0.0 --port 9002",
     "clean": "rimraf .next .turbo node_modules/.cache .genkit && echo cleaned",
     "test": "vitest run",
     "test:rules": "vitest run tests/rules --reporter=dot",
@@ -14,6 +14,7 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 9002",
     "analyze": "ANALYZE=true next build",
+    "postinstall": "patch-package",
     "bnpl:reconcile": "node scripts/reconcile-bnpl.mjs",
     "bnpl:reconcile:dry": "node scripts/reconcile-bnpl.mjs --dry",
     "bnpl:recompute": "node scripts/recompute-bnpl-rollups.mjs",
@@ -105,6 +106,11 @@
     "tsx": "^4.19.1",
     "typescript": "^5.5.4",
     "vitest": "^3.2.4"
+  },
+  "packageManager": "npm@10.8.2",
+  "engines": {
+    "node": ">=20.12.0",
+    "npm": ">=10.8.0"
   },
   "overrides": {
     "undici": "^6.21.3"
