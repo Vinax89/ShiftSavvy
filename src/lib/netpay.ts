@@ -5,6 +5,24 @@ import { db } from '@/lib/firebase.client'
 import { evaluatePaycheck } from '@/domain/paycheck'
 import { periodBounds } from '@/domain/pay-periods'
 import { type Policy, type TaxProfile } from '@/domain/paycheck.schema'
+import { resultCache, inflight } from './cache'
+
+// Cache for in-flight promises to prevent thundering herd
+async function once<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  let p = inflight.get(key) as Promise<T> | undefined;
+  if (p) return p;
+
+  const next = fn().finally(() => {
+    // Important: remove the promise from the inflight cache once it's settled
+    // to allow for future calls to execute the function again.
+    inflight.delete(key);
+  });
+
+  inflight.set(key, next);
+  return next;
+}
+
+async function _getNetForPayday(opts: { userId: string, paydayYMD: string, schedule: any }) {
 import { LRUCache } from 'lru-cache'
 
 const cache = new LRUCache<string, number>({
@@ -14,9 +32,9 @@ const cache = new LRUCache<string, number>({
 
 export async function getNetForPayday(opts: { userId: string, paydayYMD: string, schedule: any }) {
   const { userId, paydayYMD, schedule } = opts
-  const cacheKey = `${userId}:${paydayYMD}`
+  const cacheKey = `netpay:${userId}:${paydayYMD}`
   const cached = cache.get(cacheKey)
-  if (cached) return cached
+  if (cached) return cached as number
   
   // 1) Try a saved estimate whose periodStart <= payday <= periodEnd (order by periodStart desc; filter client-side)
   const snap = await getDocs(query(
@@ -57,4 +75,9 @@ export async function getNetForPayday(opts: { userId: string, paydayYMD: string,
   
   cache.set(cacheKey, r.netCents)
   return r.netCents
+}
+
+export async function getNetForPayday(opts: { userId: string, paydayYMD: string, schedule: any }): Promise<number> {
+    const key = `netpay-once:${opts.userId}:${opts.paydayYMD}`;
+    return once(key, () => _getNetForPayday(opts));
 }
