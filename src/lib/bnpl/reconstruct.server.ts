@@ -1,4 +1,5 @@
-// src/lib/bnpl/reconstruct.ts
+'use server';
+// src/lib/bnpl/reconstruct.server.ts
 import db from '@/lib/firebaseAdmin';
 import type {
   RawTransaction,
@@ -95,7 +96,7 @@ async function fetchRecentTransactions(userId: string, accountId: string, horizo
 
   const snap = await db.collection(`users/${userId}/transactions`)
     .where('accountId', '==', accountId)
-    .where('date', '>=', Timestamp.fromDate(start))
+    .where('postedDate', '>=', start.toISOString().slice(0, 10))
     .get();
 
   return snap.docs.map((d) => {
@@ -104,9 +105,9 @@ async function fetchRecentTransactions(userId: string, accountId: string, horizo
       id: d.id,
       userId: userId,
       accountId: accountId,
-      amountCents: data.amount,
-      postedDate: (data.date as Timestamp).toDate().toISOString().slice(0, 10),
-      description: data.merchant, // Assuming 'merchant' field holds the description
+      amountCents: data.amountCents,
+      postedDate: data.postedDate,
+      description: data.description,
     };
   });
 }

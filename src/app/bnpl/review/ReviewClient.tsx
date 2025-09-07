@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { apiFetch } from '@/lib/api.client'
 import TxnPickerModal from './TxnPickerModal'
+import { Loader2 } from 'lucide-react'
 
 type Sched = { dueDate: string; amountCents: number; txnId?: string; paidCents?: number }
 type Plan = {
@@ -28,6 +29,7 @@ export default function ReviewClient() {
   const uid = useUid()
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(false)
+  const [reconstructing, setReconstructing] = useState(false);
   const [editing, setEditing] = useState<{[k:string]: Plan}>({}) // planId -> draft
   const [picker, setPicker] = useState<{ open: boolean; planId?: string; schedIdx?: number }>(
     { open: false }
@@ -125,20 +127,50 @@ export default function ReviewClient() {
       toast.error(e.message || 'Close failed')
     }
   }
+  
+  async function runReconstruction() {
+    if (!uid) return;
+    setReconstructing(true);
+    try {
+      // Assuming a primary account for simplicity. A real app might need a selector.
+      const accountId = 'acct:test:checking'; 
+      const response = await apiFetch('/api/bnpl/reconstruct', {
+        method: 'POST',
+        body: JSON.stringify({ accountId }), // No need to send userId, it's inferred from auth
+        requireAuth: true,
+      });
+      toast.success(`Reconstruction complete. Found ${response.stats.contracts} new plans.`);
+      await fetchPlans(); // Refresh the plan list
+    } catch (e: any) {
+      toast.error(e.message || 'Reconstruction failed');
+    } finally {
+      setReconstructing(false);
+    }
+  }
 
   if (!uid) return <div className="p-4 text-sm opacity-80">Sign in to review BNPL plans.</div>
 
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-4">
       <Card>
-        <CardHeader className="space-y-1">
-          <CardTitle>Review BNPL</CardTitle>
-          <CardDescription>
-            Link payments, edit schedules, and close plans. <Button variant="secondary" size="sm" onClick={fetchPlans} disabled={loading}>Refresh</Button>
-          </CardDescription>
+        <CardHeader className="flex flex-row justify-between items-start">
+            <div>
+                 <CardTitle>Review BNPL</CardTitle>
+                 <CardDescription>
+                    Link payments, edit schedules, and close plans.
+                 </CardDescription>
+            </div>
+            <div className="flex gap-2">
+                <Button variant="outline" onClick={runReconstruction} disabled={reconstructing}>
+                  {reconstructing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Reconstruct
+                </Button>
+                <Button variant="secondary" size="sm" onClick={fetchPlans} disabled={loading}>Refresh</Button>
+            </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {plans.length === 0 && <div className="text-sm opacity-80">No plans yet. Try running auto-reconstruct or create one manually.</div>}
+          {loading && !plans.length && <div className="text-sm opacity-80 text-center p-4">Loading plans...</div>}
+          {!loading && plans.length === 0 && <div className="text-sm opacity-80">No plans yet. Try running auto-reconstruct or create one manually.</div>}
           {plans.map(plan => {
             const draft = editing[plan.id]
             const current = draft ?? plan
