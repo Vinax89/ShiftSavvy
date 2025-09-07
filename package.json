@@ -95,8 +95,11 @@
     "genkit-cli": "^1.14.1",
     "patch-package": "^8.0.0",
     "postcss": "^8",
+    "rimraf": "^5.0.10",
     "rimraf": "^6.0.1",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4",
     "tsx": "^4.19.1",
     "typescript": "^5",
     "vitest": "^3.2.4"
