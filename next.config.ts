@@ -1,17 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Your Next.js configuration options go here.
-  // For example, to allow images from a specific domain:
-  // images: {
-  //   remotePatterns: [
-  //     {
-  //       protocol: 'https',
-  //       hostname: 'example.com',
-  //       port: '',
-  //       pathname: '/images/**',
-  //     },
-  //   ],
-  // },
+  // allow Firebase Studio (copy the exact origin that appears in your logs)
+  allowedDevOrigins: [
+    'https://9000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev',
+  ],
+
+  // Optional: hide noisy OTEL “Critical dependency … an expression” warnings in dev
+  webpack: (config: any) => {
+    config.ignoreWarnings ??= [];
+    config.ignoreWarnings.push(
+      /Critical dependency: the request of a dependency is an expression/
+    );
+    return config;
+  },
 };
 
 module.exports = nextConfig;
