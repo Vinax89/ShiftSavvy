@@ -1,0 +1,46 @@
+name: Summarize new issues
+
+on:
+  issues:
+    types: [opened]
+
+concurrency:
+  group: summarize-issue-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write         # to post the comment
+      contents: read
+      models: read          # required for GitHub Models
+
+    steps:
+      - name: Summarize with GitHub Models (GPT-5)
+        id: inference
+        uses: actions/ai-inference@v1
+        with:
+          # Set a repo variable SUMMARY_MODEL if you need to override this.
+          # Example fallback you can set: openai/gpt-4o-mini
+          model: ${{ vars.SUMMARY_MODEL || 'openai/gpt-5' }}
+          max-tokens: 180
+          temperature: 0.2
+          system-prompt: >
+            You write crisp, neutral one-paragraph summaries for triage.
+            Keep it under 6 sentences. Don’t invent facts.
+          prompt: |
+            Summarize this GitHub issue in one paragraph.
+
+            Title:
+            ${{ github.event.issue.title }}
+
+            Body:
+            ${{ github.event.issue.body }}
+
+      - name: Comment with AI summary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --body-file "${{ steps.inference.outputs['response-file'] }}"
