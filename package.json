@@ -58,7 +58,7 @@
     "firebaseui": "^6.1.0",
     "genkit": "^1.14.1",
     "idb": "^8.0.0",
-    "lucide-react": "^0.475.0",
+    "lucide-react": "^0.542.0",
     "nanoid": "^5.0.7",
     "next": "^15.5.2",
     "patch-package": "^8.0.0",
