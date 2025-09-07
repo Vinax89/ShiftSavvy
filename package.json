@@ -94,6 +94,7 @@
     "eslint-config-next": "^15.5.2",
     "eslint-formatter-github": "^1.1.4",
     "genkit-cli": "^1.14.1",
+    "next": "15.5.2",
     "patch-package": "^8.0.0",
     "postcss": "^8",
     "rimraf": "^6.0.1",
