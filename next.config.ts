@@ -1,17 +1,20 @@
-// next.config.ts
+
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // allow Studio pages to load your /_next/* assets
+  // Allow Studio’s preview host to fetch /_next/* during dev
   allowedDevOrigins: [
-    "https://9000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev",
+    // update if Studio shows a different hostname
     "https://6000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev",
+    "https://9000-firebase-studio-1757029696220.cluster-2xfkbshw5rfguuk5qupw267afs.cloudworkstations.dev",
   ],
-  // (optional) silence noisy OTel warnings from Sentry in dev
+
+  // Optional: quiet the OpenTelemetry “Critical dependency” warnings in dev
   webpack: (config) => {
-    config.ignoreWarnings = [
-      /Critical dependency: the request of a dependency is an expression/,
-    ];
+    config.ignoreWarnings ||= [];
+    config.ignoreWarnings.push(
+      /Critical dependency: the request of a dependency is an expression/
+    );
     return config;
   },
 };
