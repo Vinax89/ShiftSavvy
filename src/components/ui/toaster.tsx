@@ -1,7 +1,14 @@
 'use client';
-import { Toaster as SonnerToaster, toast as sonnerToast } from 'sonner';
+import * as React from 'react';
+import { Toaster as Sonner } from 'sonner';
 
 export default function Toaster() {
-  return <SonnerToaster richColors closeButton />;
+  return (
+    <Sonner
+      richColors
+      position="top-right"
+      closeButton
+      duration={4000}
+    />
+  );
 }
-export const toast = sonnerToast;

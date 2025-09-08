@@ -1,0 +1,8 @@
+prefer-online=true
+fetch-retries=6
+fetch-retry-maxtimeout=180000
+fetch-timeout=600000
+fund=false
+audit=false
+cache=/tmp/.npm-cache
+tmp=/tmp/.npm-tmp

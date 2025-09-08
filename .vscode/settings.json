@@ -1,4 +1,10 @@
 {
-  "npm.packageManager": "npm",
-  "IDX.aI.showChatInEditorTab": true
+  "cSpell.words": [
+    "autoprefixer",
+    "cloudworkstations",
+    "extname",
+    "firebaseui",
+    "firestore",
+    "nullglob"
+  ]
 }
