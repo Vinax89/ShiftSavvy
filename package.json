@@ -27,7 +27,9 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "predev": "node scripts/free-port.mjs 9010 9002 || true",
     "typecheck": "tsc -p .",
-    "preinstall": "mkdir -p /tmp/.npm-cache /tmp/.npm-tmp || true"
+    "preinstall": "mkdir -p /tmp/.npm-cache /tmp/.npm-tmp || true",
+    "audit:client-imports": "node scripts/audit-client-imports.mjs",
+    "audit:client-imports:fix": "node scripts/audit-client-imports.mjs --fix"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",
