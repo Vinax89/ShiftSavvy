@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: Summarize with GitHub Models (GPT-5)
         id: inference
-        uses: actions/ai-inference@v1
+        uses: actions/ai-inference@v2
         with:
           # Set a repo variable SUMMARY_MODEL if you need to override this.
           # Example fallback you can set: openai/gpt-4o-mini
