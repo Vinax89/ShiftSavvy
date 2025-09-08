@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 0.0.0.0 -p 9002",
+    "dev": "next dev -H 0.0.0.0 -p 9010",
     "clean": "rimraf .next .turbo node_modules/.cache .genkit && echo cleaned",
     "test": "vitest run",
     "test:rules": "vitest run tests/rules --reporter=dot",
@@ -11,7 +11,7 @@
     "import:csv": "tsx -r dotenv/config src/tools/import/cli.ts",
     "import:generic": "node src/tools/import-generic-csv.mjs",
     "build": "next build",
-    "start": "next start -H 0.0.0.0 -p 9002",
+    "start": "next start -H 0.0.0.0 -p 9010",
     "analyze": "ANALYZE=true next build",
     "postinstall": "test -d node_modules && patch-package || true",
     "bnpl:reconcile": "node scripts/reconcile-bnpl.mjs",
@@ -25,7 +25,7 @@
     "e2e:ui": "playwright test --ui",
     "lint": "eslint . --ext .ts,.tsx --max-warnings=0 -f node_modules/eslint-formatter-github",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "predev": "npx --yes kill-port 9002 || true",
+    "predev": "node scripts/free-port.mjs 9010 9002 || true",
     "typecheck": "tsc -p .",
     "preinstall": "mkdir -p /tmp/.npm-cache /tmp/.npm-tmp || true"
   },
