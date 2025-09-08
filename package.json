@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 9010",
     "clean": "rimraf .next .turbo node_modules/.cache .genkit",
+    "rebuild": "rimraf node_modules package-lock.json && npm install",
     "test": "vitest run",
     "test:rules": "vitest run tests/rules --reporter=dot",
     "emulators": "firebase emulators:start --only firestore,storage,auth",
